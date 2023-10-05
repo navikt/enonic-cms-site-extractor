@@ -4,43 +4,58 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.cms.utils.documentToString
+import no.nav.utils.documentToString
 
 fun Application.configureRouting() {
     routing {
-        get("/content/{key}") {
-            val key = call.parameters["key"]?.toInt()
-            if (key == null) {
-                call.response.status(HttpStatusCode.BadRequest)
-                call.respondText("Parameter key must be a number")
+        get("/test") {
+            val client = getCmsClient(call)
+
+            if (client != null) {
+                call.respondText("This should not happen!")
                 return@get
             }
 
-            val client = getCmsClient(call)
-
-            val content = client.getContent(key)
-
-            val contentString = documentToString(content)
-
-            call.respondText(contentString ?: "Oh noes", ContentType.Text.Xml)
+            call.respondText("Great success!")
         }
 
-        get("/menu/{key}") {
-            val key = call.parameters["key"]?.toInt()
+        route("/cms") {
+            install(CmsClientPlugin)
 
-            if (key == null) {
-                call.response.status(HttpStatusCode.BadRequest)
-                call.respondText("Parameter key must be specified")
-                return@get
+            get("/content/{key}") {
+                val key = call.parameters["key"]?.toInt()
+                if (key == null) {
+                    call.response.status(HttpStatusCode.BadRequest)
+                    call.respondText("Parameter key must be a number")
+                    return@get
+                }
+
+                val client = getCmsClient(call)
+
+                val content = client?.getContent(key)
+
+                val contentString = documentToString(content)
+
+                call.respondText(contentString ?: "Oh noes", ContentType.Text.Xml)
             }
 
-            val client = getCmsClient(call)
+            get("/menu/{key}") {
+                val key = call.parameters["key"]?.toInt()
 
-            val menu = client.getMenu(key)
+                if (key == null) {
+                    call.response.status(HttpStatusCode.BadRequest)
+                    call.respondText("Parameter key must be specified")
+                    return@get
+                }
 
-            val contentString = documentToString(menu)
+                val client = getCmsClient(call)
 
-            call.respondText(contentString ?: "Oh noes", ContentType.Text.Xml)
+                val menu = client?.getMenu(key)
+
+                val contentString = documentToString(menu)
+
+                call.respondText(contentString ?: "Oh noes", ContentType.Text.Xml)
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-package no.nav.cms.utils
+package no.nav.utils
 
 import org.jdom.Document
 import org.jdom.output.Format

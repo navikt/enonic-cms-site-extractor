@@ -13,16 +13,8 @@ fun parseAuthHeader(request: ApplicationRequest): UserPasswordCredential? {
     }
 
     val encodedAuth = parsedAuth.blob.removePrefix("${AuthScheme.Basic} ")
-
-    println("Encoded: $encodedAuth")
-
     val decodedAuth = String(Base64.getDecoder().decode(encodedAuth))
-
-    println("Decoded: $decodedAuth")
-
     val (username, password) = decodedAuth.split(":")
-
-    println("User: $username - pw: $password")
 
     return UserPasswordCredential(username, password)
 }
