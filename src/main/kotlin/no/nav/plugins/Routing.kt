@@ -8,17 +8,6 @@ import no.nav.utils.documentToString
 
 fun Application.configureRouting() {
     routing {
-        get("/test") {
-            val client = getCmsClient(call)
-
-            if (client != null) {
-                call.respondText("This should not happen!")
-                return@get
-            }
-
-            call.respondText("Great success!")
-        }
-
         route("/cms") {
             install(CmsClientPlugin)
 
@@ -30,9 +19,9 @@ fun Application.configureRouting() {
                     return@get
                 }
 
-                val client = getCmsClient(call)
+                val client = getCmsClientFromCallContext(call)
 
-                val content = client?.getContent(key)
+                val content = client.getContent(key)
 
                 val contentString = documentToString(content)
 
@@ -48,11 +37,28 @@ fun Application.configureRouting() {
                     return@get
                 }
 
-                val client = getCmsClient(call)
+                val client = getCmsClientFromCallContext(call)
 
-                val menu = client?.getMenu(key)
+                val menu = client.getMenu(key)
 
                 val contentString = documentToString(menu)
+
+                call.respondText(contentString ?: "Oh noes", ContentType.Text.Xml)
+            }
+
+            get("/render/{siteKey}/{contentKey}") {
+                val siteKey = call.parameters["siteKey"]?.toInt()
+                val contentKey = call.parameters["contentKey"]?.toInt()
+
+                if (siteKey == null || contentKey == null) {
+                    call.response.status(HttpStatusCode.BadRequest)
+                    call.respondText("Parameters siteKey and contentKey must be specified")
+                    return@get
+                }
+
+                val content = getCmsClientFromCallContext(call).renderContent(siteKey, contentKey)
+
+                val contentString = documentToString(content);
 
                 call.respondText(contentString ?: "Oh noes", ContentType.Text.Xml)
             }

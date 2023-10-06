@@ -9,7 +9,7 @@ import no.nav.utils.parseAuthHeader
 
 private val cmsClientKey = AttributeKey<CmsClient>("cmsClientKey")
 
-fun getCmsClient(call: ApplicationCall): CmsClient? = call.attributes.getOrNull(cmsClientKey)
+fun getCmsClientFromCallContext(call: ApplicationCall): CmsClient = call.attributes.get(cmsClientKey)
 
 val CmsClientPlugin = createRouteScopedPlugin("CmsClient") {
     onCall { call ->
@@ -27,7 +27,14 @@ val CmsClientPlugin = createRouteScopedPlugin("CmsClient") {
             return@onCall
         }
 
-        val client = CmsClient(url, credential.name, credential.password)
+        val client = CmsClient(url)
+
+        val didLogin = client.login(credential.name, credential.password)
+        if (!didLogin) {
+            call.response.status(HttpStatusCode.Unauthorized)
+            call.respondText("Login failed for ${credential.name} to $url")
+            return@onCall
+        }
 
         call.attributes.put(cmsClientKey, client)
     }

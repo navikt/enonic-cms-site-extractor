@@ -8,7 +8,7 @@ import java.util.*
 
 fun parseAuthHeader(request: ApplicationRequest): UserPasswordCredential? {
     val parsedAuth = parseAuthorizationHeader(request.headers[HttpHeaders.Authorization] ?: "")
-    if (parsedAuth !is HttpAuthHeader.Single || parsedAuth.authScheme != AuthScheme.Basic) {
+    if (parsedAuth !is HttpAuthHeader.Single || !parsedAuth.authScheme.equals(AuthScheme.Basic, ignoreCase = true)) {
         return null
     }
 
