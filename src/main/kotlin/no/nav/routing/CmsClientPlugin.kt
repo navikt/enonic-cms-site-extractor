@@ -1,15 +1,15 @@
-package no.nav.plugins
+package no.nav.routing
 
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.util.*
-import no.nav.cms.client.CmsClient
+import no.nav.cms.client.CmsRpcClient
 import no.nav.utils.parseAuthHeader
 
-private val cmsClientKey = AttributeKey<CmsClient>("cmsClientKey")
+private val cmsClientKey = AttributeKey<CmsRpcClient>("cmsClientKey")
 
-fun getCmsClientFromCallContext(call: ApplicationCall): CmsClient = call.attributes.get(cmsClientKey)
+fun getCmsClientFromCallContext(call: ApplicationCall): CmsRpcClient = call.attributes.get(cmsClientKey)
 
 val CmsClientPlugin = createRouteScopedPlugin("CmsClient") {
     onCall { call ->
@@ -20,14 +20,14 @@ val CmsClientPlugin = createRouteScopedPlugin("CmsClient") {
             return@onCall
         }
 
-        val url = call.request.queryParameters["url"]
+        val url = call.request.headers["cmsurl"]
         if (url == null) {
             call.response.status(HttpStatusCode.BadRequest)
-            call.respondText("Parameter url must be specified")
+            call.respondText("Header \"cmsurl\" must be specified")
             return@onCall
         }
 
-        val client = CmsClient(url)
+        val client = CmsRpcClient(url)
 
         val didLogin = client.login(credential.name, credential.password)
         if (!didLogin) {
