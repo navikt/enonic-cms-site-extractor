@@ -10,9 +10,9 @@ import com.enonic.cms.api.client.model.GetContentVersionsParams
 import com.enonic.cms.api.client.model.GetMenuDataParams
 import com.enonic.cms.api.client.model.GetMenuItemParams
 import com.enonic.cms.api.client.model.GetMenuParams
-import com.enonic.cms.api.client.model.GetResourceParams
-import com.enonic.cms.api.client.model.RenderContentParams
+import io.ktor.server.auth.*
 import io.ktor.util.logging.*
+import no.nav.cms.renderer.ContentRenderParams
 import org.jdom.Document
 
 
@@ -20,22 +20,24 @@ private const val RPC_PATH = "/rpc/bin"
 
 private val logger = KtorSimpleLogger("CmsClient")
 
-class CmsRpcClient(cmsOrigin: String) {
-    private val client: RemoteClient
+class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
     private val cmsOrigin: String
+    private val rpcClient: RemoteClient
+    private val restClient: CmsRestClient
 
     init {
         this.cmsOrigin = cmsOrigin
-        this.client = ClientFactory.getRemoteClient("$cmsOrigin$RPC_PATH")
+        this.rpcClient = ClientFactory.getRemoteClient(cmsOrigin.plus(RPC_PATH))
+        this.restClient = CmsRestClient(cmsOrigin, credential)
     }
 
-    fun login(userName: String, password: String): Boolean {
+    fun login(username: String, password: String): Boolean {
         return try {
-            client.login(userName, password)
-            logger.info("Logged in as ${client.userName}")
+            rpcClient.login(username, password)
+            logger.info("Logged in as ${rpcClient.userName}")
             true
         } catch (e: ClientException) {
-            logger.error("Login failed for user $userName - ${e.message}")
+            logger.error("Login failed for user $username - ${e.message}")
             false
         }
     }
@@ -47,7 +49,7 @@ class CmsRpcClient(cmsOrigin: String) {
         params.includeVersionsInfo = true
         params.includeOfflineContent = true
 
-        return client.getContent(params)
+        return rpcClient.getContent(params)
     }
 
     fun getContent(key: Int): Document {
@@ -59,7 +61,7 @@ class CmsRpcClient(cmsOrigin: String) {
         params.contentVersionKeys = keys
         params.contentRequiredToBeOnline = false
 
-        return client.getContentVersions(params)
+        return rpcClient.getContentVersions(params)
     }
 
     fun getContentVersion(key: Int): Document {
@@ -71,7 +73,7 @@ class CmsRpcClient(cmsOrigin: String) {
         params.menuKey = key
         params.includeHidden = true
 
-        return client.getMenu(params)
+        return rpcClient.getMenu(params)
     }
 
     fun getMenuItem(key: Int): Document {
@@ -79,7 +81,7 @@ class CmsRpcClient(cmsOrigin: String) {
         params.menuItemKey = key
         params.details = true
 
-        return client.getMenuItem(params)
+        return rpcClient.getMenuItem(params)
     }
 
     fun getCategories(key: Int, depth: Int?): Document {
@@ -88,7 +90,7 @@ class CmsRpcClient(cmsOrigin: String) {
         params.includeTopCategory = true
         params.levels = depth ?: 0
 
-        return client.getCategories(params)
+        return rpcClient.getCategories(params)
     }
 
     fun getContentByCategory(key: Int): Document {
@@ -97,23 +99,21 @@ class CmsRpcClient(cmsOrigin: String) {
         params.includeOfflineContent = true
         params.includeData = false
 
-        return client.getContentByCategory(params)
+        return rpcClient.getContentByCategory(params)
     }
 
     fun getMenuData(key: Int): Document {
         val params = GetMenuDataParams()
         params.menuKey = key
 
-        return client.getMenuData(params)
+        return rpcClient.getMenuData(params)
     }
 
-    fun renderContent(siteKey: Int, contentKey: Int): Document {
-        val params = RenderContentParams()
-        params.siteKey = siteKey
-        params.contentKey = contentKey
-        params.serverName = this.cmsOrigin
-        params.basePath = "/"
+    suspend fun getPageTemplateKey(contentKey: String, versionKey: String, pageKey: String, unitKey: String): String? {
+        return restClient.getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
+    }
 
-        return client.renderContent(params)
+    suspend fun renderContent(params: ContentRenderParams): String? {
+        return restClient.renderContent(params)
     }
 }

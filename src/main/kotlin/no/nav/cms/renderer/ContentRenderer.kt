@@ -1,27 +1,23 @@
 package no.nav.cms.renderer
 
 import io.ktor.util.logging.*
-import no.nav.cms.client.CmsRestClient
-import no.nav.cms.client.CmsRpcClient
+import no.nav.cms.client.CmsClient
 import org.jdom.Element
 import java.lang.Exception
 
-private const val CONTENT_ELEMENT_NAME = "content"
 
+private const val CONTENT_ELEMENT_NAME = "content"
 
 private val logger = KtorSimpleLogger("ContentRenderer")
 
-class ContentRenderer(contentKey: Int, rpcClient: CmsRpcClient, restClient: CmsRestClient) {
-    private val rpcClient: CmsRpcClient
-    private val restClient: CmsRestClient
-
+class ContentRenderer(contentKey: Int, cmsClient: CmsClient) {
+    private val cmsClient: CmsClient
     private val contentElement: Element
 
     init {
-        this.rpcClient = rpcClient
-        this.restClient = restClient
+        this.cmsClient = cmsClient
 
-        val document = rpcClient.getContent(contentKey)
+        val document = cmsClient.getContent(contentKey)
 
         val rootElement = document.rootElement
         val contentElement = rootElement.getChild("content")
@@ -34,12 +30,12 @@ class ContentRenderer(contentKey: Int, rpcClient: CmsRpcClient, restClient: CmsR
     }
 
     suspend fun render(): String? {
-        val params = ContentRenderParamsBuilder(this.contentElement, this.restClient).build()
+        val params = ContentRenderParamsBuilder(this.contentElement, this.cmsClient).build()
 
         if (params == null) {
             return null
         }
 
-        return this.restClient.renderPage(params)
+        return this.cmsClient.renderContent(params)
     }
 }

@@ -1,7 +1,7 @@
 package no.nav.cms.renderer
 
 import io.ktor.util.logging.*
-import no.nav.cms.client.CmsRestClient
+import no.nav.cms.client.CmsClient
 import org.jdom.Element
 
 private const val CT_KEY_PAGE_KEY_DELTA = 999
@@ -18,12 +18,12 @@ data class ContentRenderParams(
     val pagetemplatekey: String
 )
 
-class ContentRenderParamsBuilder(contentElement: Element, restClient: CmsRestClient) {
-    private val restClient: CmsRestClient
+class ContentRenderParamsBuilder(contentElement: Element, cmsClient: CmsClient) {
+    private val cmsClient: CmsClient
     private val contentElement: Element
 
     init {
-        this.restClient = restClient
+        this.cmsClient = cmsClient
         this.contentElement = contentElement
     }
 
@@ -96,7 +96,7 @@ class ContentRenderParamsBuilder(contentElement: Element, restClient: CmsRestCli
     }
 
     private suspend fun getPageTemplateKey(contentKey: String, versionKey: String, pageKey: String, unitKey: String): String {
-        val result = this.restClient
+        val result = this.cmsClient
             .getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
 
         return result

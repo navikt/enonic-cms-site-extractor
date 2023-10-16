@@ -4,10 +4,8 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.cms.client.CmsRestClient
 import no.nav.cms.renderer.ContentRenderer
 import no.nav.utils.documentToString
-import no.nav.utils.parseAuthHeader
 
 fun Application.configureRouting() {
     routing {
@@ -149,24 +147,9 @@ fun Application.configureRouting() {
                     return@get
                 }
 
-                val credential = parseAuthHeader(call.request)
-                if (credential == null) {
-                    call.response.status(HttpStatusCode.Unauthorized)
-                    call.respondText("Missing or invalid authorization header")
-                    return@get
-                }
+                val client = getCmsClientFromCallContext(call)
 
-                val url = call.request.headers["cmsurl"]
-                if (url == null) {
-                    call.response.status(HttpStatusCode.BadRequest)
-                    call.respondText("Header \"cmsurl\" must be specified")
-                    return@get
-                }
-
-                val rpcClient = getCmsClientFromCallContext(call)
-                val restClient = CmsRestClient(url, credential.name, credential.password)
-
-                val contentRenderer = ContentRenderer(contentKey, rpcClient, restClient)
+                val contentRenderer = ContentRenderer(contentKey, client)
 
                 val result = contentRenderer.render()
 

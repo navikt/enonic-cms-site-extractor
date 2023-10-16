@@ -5,67 +5,111 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.cookies.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.server.auth.*
 import io.ktor.util.logging.*
 import no.nav.cms.renderer.ContentRenderParams
 
 
 private const val LOGIN_PATH = "/admin/login"
+private const val ERROR_PATH = "/admin/errorpage"
 private const val ADMIN_PAGE_PATH = "/admin/adminpage"
 
 private val logger = KtorSimpleLogger("CmsRestClient")
 
-class CmsRestClient(cmsOrigin: String, username: String, password: String) {
+internal class CmsRestClient(cmsOrigin: String, credential: UserPasswordCredential) {
     private val origin: String
-    private val username: String
-    private val password: String
+    private val loginUrl: String
+    private val errorUrl: String
+    private val adminUrl: String
 
+    private val credential: UserPasswordCredential
     private val httpClient: HttpClient
 
     init {
         this.origin = cmsOrigin
-        this.username = username
-        this.password = password
+        this.loginUrl = cmsOrigin.plus(LOGIN_PATH)
+        this.errorUrl = cmsOrigin.plus(ERROR_PATH)
+        this.adminUrl = cmsOrigin.plus(ADMIN_PAGE_PATH)
+
+        this.credential = credential
 
         this.httpClient = HttpClient(CIO) {
             install(Logging) {
                 level = LogLevel.INFO
             }
+
             install(HttpCookies)
 
             followRedirects = false
         }
     }
 
-    private fun getLoginUrl(): String {
-        return "${this.origin}$LOGIN_PATH"
+    private fun isLoginRedirect(response: HttpResponse): Boolean {
+        return response.status == HttpStatusCode.Found
+                && response.headers[HttpHeaders.Location] == loginUrl
     }
 
-    private fun getAdminPageUrl(): String {
-        return "${this.origin}$ADMIN_PAGE_PATH"
+    private fun isErrorRedirect(response: HttpResponse): Boolean {
+        return response.status == HttpStatusCode.Found
+                && response.headers[HttpHeaders.Location] == errorUrl
     }
 
-    private fun isRedirectToLogin(response: HttpResponse): Boolean {
-        return response.status == HttpStatusCode.Found && response.headers[HttpHeaders.Location] == this.getLoginUrl()
+    private fun isLoginSuccessful(response: HttpResponse): Boolean {
+        return !(isErrorRedirect(response) || isLoginRedirect(response))
     }
 
-    private suspend fun login(): Boolean {
-        val response = this.httpClient.get(this.getLoginUrl()) {
-            url {
-                parameters.append("username", this@CmsRestClient.username)
-                parameters.append("password", this@CmsRestClient.password)
-                parameters.append("login", "true")
+    private suspend fun login(): HttpResponse {
+        val response = httpClient.post(loginUrl) {
+            contentType(ContentType.Application.FormUrlEncoded)
+
+            headers {
+                append(HttpHeaders.Referrer, loginUrl)
+            }
+
+            setBody(FormDataContent(parameters {
+                append("username", credential.name)
+                append("password", credential.password)
+                append("login", "true")
+            }))
+        }
+
+        return response
+    }
+
+    private suspend fun requestWithLogin(
+        url: String,
+        method: HttpMethod = HttpMethod.Get,
+        block: HttpRequestBuilder.() -> Unit
+    ): HttpResponse {
+        val response = httpClient.request(url) {
+            this.method = method
+            block()
+        }
+
+        if (isLoginRedirect(response)) {
+            logger.info("Redirected to login")
+
+            val loginResponse = login()
+
+            return if (isLoginSuccessful(loginResponse)) {
+                logger.info("Login was successful!")
+                requestWithLogin(url, method) {
+                    block()
+                }
+            } else {
+                logger.info("Login failed!")
+                loginResponse
             }
         }
 
-        return !isRedirectToLogin(response)
+        return response
     }
 
     suspend fun getPageTemplateKey(contentKey: String, versionKey: String, pageKey: String, unitKey: String): String? {
-        this.login()
-
-        val response = this.httpClient.get(getAdminPageUrl()) {
+        val response = requestWithLogin(adminUrl) {
             url {
                 parameters.append("op", "preview")
                 parameters.append("subop", "list")
@@ -76,7 +120,7 @@ class CmsRestClient(cmsOrigin: String, username: String, password: String) {
             }
         }
 
-        if (response.status.value != 200) {
+        if (response.status != HttpStatusCode.OK) {
             return null
         }
 
@@ -90,10 +134,8 @@ class CmsRestClient(cmsOrigin: String, username: String, password: String) {
         return pageTemplateKey
     }
 
-    suspend fun renderPage(params: ContentRenderParams): String? {
-        this.login()
-
-        val response = this.httpClient.get(getAdminPageUrl()) {
+    suspend fun renderContent(params: ContentRenderParams): String? {
+        val response = requestWithLogin(adminUrl) {
             url {
                 parameters.append("op", "preview")
                 parameters.append("subop", "pagetemplate")
@@ -107,7 +149,7 @@ class CmsRestClient(cmsOrigin: String, username: String, password: String) {
             }
         }
 
-        if (response.status.value != 200) {
+        if (response.status != HttpStatusCode.OK) {
             return null
         }
 
