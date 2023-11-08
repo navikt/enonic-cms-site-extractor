@@ -5,6 +5,7 @@ import io.ktor.server.application.*
 import io.ktor.server.plugins.callloging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
+import io.ktor.server.resources.*
 import io.ktor.server.routing.*
 import no.nav.routing.configureRouting
 import org.slf4j.event.Level
@@ -22,6 +23,8 @@ fun Application.module() {
     install(ContentNegotiation) {
         xml()
     }
+
+    install(Resources)
 
     configureRouting()
 }

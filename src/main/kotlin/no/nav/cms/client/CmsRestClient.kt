@@ -19,7 +19,7 @@ private const val ADMIN_PAGE_PATH = "/admin/adminpage"
 
 private val logger = KtorSimpleLogger("CmsRestClient")
 
-internal class CmsRestClient(cmsOrigin: String, credential: UserPasswordCredential) {
+class CmsRestClient(cmsOrigin: String, credential: UserPasswordCredential) {
     private val origin: String
     private val loginUrl: String
     private val errorUrl: String

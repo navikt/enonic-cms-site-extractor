@@ -30,11 +30,7 @@ class ContentRenderer(contentKey: Int, cmsClient: CmsClient) {
     }
 
     suspend fun render(): String? {
-        val params = ContentRenderParamsBuilder(this.contentElement, this.cmsClient).build()
-
-        if (params == null) {
-            return null
-        }
+        val params = ContentRenderParamsBuilder(this.contentElement, this.cmsClient).build() ?: return null
 
         return this.cmsClient.renderContent(params)
     }
