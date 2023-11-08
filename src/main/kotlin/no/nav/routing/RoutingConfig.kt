@@ -1,6 +1,6 @@
 package no.nav.routing
 
-import no.nav.routing.routes.cmsClientProxy.cmsClientRoutes
+import no.nav.routing.routes.cmsClient.cmsClientRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
