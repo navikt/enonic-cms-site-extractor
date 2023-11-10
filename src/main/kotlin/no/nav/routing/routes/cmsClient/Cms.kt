@@ -13,7 +13,7 @@ import no.nav.utils.documentToString
 import org.jdom.Document
 
 @Resource("/cms")
-class Cms() {
+private class Cms() {
     @Resource("content/{key}")
     class Content(val parent: Cms = Cms(), val key: Int)
 
@@ -26,14 +26,14 @@ class Cms() {
     @Resource("menuitem/{key}")
     class MenuItem(val parent: Cms = Cms(), val key: Int)
 
+    @Resource("menudata/{key}")
+    class MenuData(val parent: Cms = Cms(), val key: Int)
+
     @Resource("categories/{key}")
     class Categories(val parent: Cms = Cms(), val key: Int, val depth: Int?)
 
     @Resource("contentByCategory/{key}")
     class ContentByCategory(val parent: Cms = Cms(), val key: Int)
-
-    @Resource("menudata/{key}")
-    class MenuData(val parent: Cms = Cms(), val key: Int)
 }
 
 private suspend fun documentXmlResponse(call: ApplicationCall, document: Document) {
@@ -51,51 +51,51 @@ fun Route.cmsClientRoutes() {
         )
     }
 
-    get<Cms.Version> { content ->
+    get<Cms.Version> { version ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getContentVersion(content.key)
+                .getContentVersion(version.key)
         )
     }
 
-    get<Cms.Menu> { content ->
+    get<Cms.Menu> { menu ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getMenu(content.key)
+                .getMenu(menu.key)
         )
     }
 
-    get<Cms.MenuItem> { content ->
+    get<Cms.MenuItem> { menuitem ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getMenuItem(content.key)
+                .getMenuItem(menuitem.key)
         )
     }
 
-    get<Cms.Categories> { content ->
+    get<Cms.MenuData> { menudata ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getCategories(content.key, content.depth)
+                .getMenuData(menudata.key)
         )
     }
 
-    get<Cms.ContentByCategory> { content ->
+    get<Cms.Categories> { category ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getContentByCategory(content.key)
+                .getCategories(category.key, category.depth)
         )
     }
 
-    get<Cms.MenuData> { content ->
+    get<Cms.ContentByCategory> { category ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getMenuData(content.key)
+                .getContentByCategory(category.key)
         )
     }
 }
