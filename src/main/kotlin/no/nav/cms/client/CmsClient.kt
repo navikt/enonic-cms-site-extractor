@@ -42,9 +42,9 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         }
     }
 
-    fun getContent(keys: IntArray): Document {
+    fun getContent(contentKeys: IntArray): Document {
         val params = GetContentParams()
-        params.contentKeys = keys
+        params.contentKeys = contentKeys
         params.includeData = false
         params.includeVersionsInfo = true
         params.includeOfflineContent = true
@@ -52,59 +52,59 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         return rpcClient.getContent(params)
     }
 
-    fun getContent(key: Int): Document {
-        return getContent(intArrayOf(key))
+    fun getContent(contentKey: Int): Document {
+        return getContent(intArrayOf(contentKey))
     }
 
-    fun getContentVersions(keys: IntArray): Document {
+    fun getContentVersions(versionKeys: IntArray): Document {
         val params = GetContentVersionsParams()
-        params.contentVersionKeys = keys
+        params.contentVersionKeys = versionKeys
         params.contentRequiredToBeOnline = false
 
         return rpcClient.getContentVersions(params)
     }
 
-    fun getContentVersion(key: Int): Document {
-        return getContentVersions(intArrayOf(key))
+    fun getContentVersion(versionKey: Int): Document {
+        return getContentVersions(intArrayOf(versionKey))
     }
 
-    fun getMenu(key: Int): Document {
+    fun getMenu(menuKey: Int): Document {
         val params = GetMenuParams()
-        params.menuKey = key
+        params.menuKey = menuKey
         params.includeHidden = true
 
         return rpcClient.getMenu(params)
     }
 
-    fun getMenuItem(key: Int): Document {
+    fun getMenuItem(menuItemKey: Int): Document {
         val params = GetMenuItemParams()
-        params.menuItemKey = key
+        params.menuItemKey = menuItemKey
         params.details = true
 
         return rpcClient.getMenuItem(params)
     }
 
-    fun getCategories(key: Int, depth: Int?): Document {
+    fun getCategories(categoryKey: Int, depth: Int?): Document {
         val params = GetCategoriesParams()
-        params.categoryKey = key
+        params.categoryKey = categoryKey
         params.includeTopCategory = true
         params.levels = depth ?: 0
 
         return rpcClient.getCategories(params)
     }
 
-    fun getContentByCategory(key: Int): Document {
+    fun getContentByCategory(categoryKey: Int): Document {
         val params = GetContentByCategoryParams()
-        params.categoryKeys = intArrayOf(key)
+        params.categoryKeys = intArrayOf(categoryKey)
         params.includeOfflineContent = true
         params.includeData = false
 
         return rpcClient.getContentByCategory(params)
     }
 
-    fun getMenuData(key: Int): Document {
+    fun getMenuData(menuKey: Int): Document {
         val params = GetMenuDataParams()
-        params.menuKey = key
+        params.menuKey = menuKey
 
         return rpcClient.getMenuData(params)
     }

@@ -89,23 +89,23 @@ class CmsRestClient(cmsOrigin: String, credential: UserPasswordCredential) {
             block()
         }
 
-        if (isLoginRedirect(response)) {
-            logger.info("Redirected to login")
-
-            val loginResponse = login()
-
-            return if (isLoginSuccessful(loginResponse)) {
-                logger.info("Login was successful!")
-                requestWithLogin(url, method) {
-                    block()
-                }
-            } else {
-                logger.info("Login failed!")
-                loginResponse
-            }
+        if (!isLoginRedirect(response)) {
+            return response
         }
 
-        return response
+        logger.info("Redirected to login")
+
+        val loginResponse = login()
+
+        return if (isLoginSuccessful(loginResponse)) {
+            logger.info("Login was successful!")
+            requestWithLogin(url, method) {
+                block()
+            }
+        } else {
+            logger.info("Login failed!")
+            loginResponse
+        }
     }
 
     suspend fun getPageTemplateKey(contentKey: String, versionKey: String, pageKey: String, unitKey: String): String? {
