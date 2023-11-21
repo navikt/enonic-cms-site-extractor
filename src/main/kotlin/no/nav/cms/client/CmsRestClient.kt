@@ -103,7 +103,7 @@ class CmsRestClient(cmsOrigin: String, credential: UserPasswordCredential) {
                 block()
             }
         } else {
-            logger.info("Login failed!")
+            logger.error("Login failed!")
             loginResponse
         }
     }
@@ -126,12 +126,9 @@ class CmsRestClient(cmsOrigin: String, credential: UserPasswordCredential) {
 
         val body = response.bodyAsText()
 
-        val pageTemplateKey =
-            Regex("""pagetemplatekey=(?<pageTemplateKey>\d+)""")
-                .find(body)?.groups
-                ?.get("pageTemplateKey")?.value
-
-        return pageTemplateKey
+        return Regex("""pagetemplatekey=(?<pageTemplateKey>\d+)""")
+            .find(body)?.groups
+            ?.get("pageTemplateKey")?.value
     }
 
     suspend fun renderContent(params: ContentRenderParams): String? {
