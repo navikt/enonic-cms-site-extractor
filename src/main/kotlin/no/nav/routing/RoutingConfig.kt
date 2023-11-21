@@ -14,6 +14,7 @@ fun Application.configureRouting() {
 
         route("/render") {
             install(CmsClientPlugin)
+
             get("/{contentKey}") {
                 val contentKey = call.parameters["contentKey"]?.toInt()
 

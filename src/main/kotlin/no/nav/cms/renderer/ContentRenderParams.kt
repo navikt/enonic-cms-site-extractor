@@ -95,7 +95,12 @@ class ContentRenderParamsBuilder(contentElement: Element, cmsClient: CmsClient) 
         return (this.getContentTypeKey().toInt() + CT_KEY_PAGE_KEY_DELTA).toString()
     }
 
-    private suspend fun getPageTemplateKey(contentKey: String, versionKey: String, pageKey: String, unitKey: String): String {
+    private suspend fun getPageTemplateKey(
+        contentKey: String,
+        versionKey: String,
+        pageKey: String,
+        unitKey: String
+    ): String {
         val result = this.cmsClient
             .getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
 

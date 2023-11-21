@@ -16,6 +16,7 @@ import no.nav.cms.renderer.ContentRenderParams
 private const val LOGIN_PATH = "/admin/login"
 private const val ERROR_PATH = "/admin/errorpage"
 private const val ADMIN_PAGE_PATH = "/admin/adminpage"
+private const val ADMIN_PREVIEW_PATH = "/admin/preview"
 
 private val logger = KtorSimpleLogger("CmsRestClient")
 
@@ -150,6 +151,8 @@ class CmsRestClient(cmsOrigin: String, credential: UserPasswordCredential) {
             return null
         }
 
-        return response.bodyAsText()
+        val urlPrefix = this.origin.plus(ADMIN_PREVIEW_PATH)
+
+        return response.bodyAsText().replace(urlPrefix, "")
     }
 }
