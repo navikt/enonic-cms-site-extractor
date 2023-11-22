@@ -51,8 +51,8 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("org.slf4j:slf4j-api:$slf4jVersion")
     implementation("com.enonic.cms:cms-api:4.7.18")
+    implementation("org.opensearch.client:opensearch-java:2.6.0")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktorVersion")
-
 }

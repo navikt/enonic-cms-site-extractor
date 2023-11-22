@@ -12,29 +12,26 @@ import no.nav.routing.getCmsClientFromCallContext
 import no.nav.utils.documentToString
 import org.jdom.Document
 
-@Resource("/cms")
-private class Cms() {
-    @Resource("content/{key}")
-    class Content(val parent: Cms = Cms(), val key: Int)
+@Resource("content/{key}")
+private class Content(val key: Int)
 
-    @Resource("version/{key}")
-    class Version(val parent: Cms = Cms(), val key: Int)
+@Resource("version/{key}")
+private class Version(val key: Int)
 
-    @Resource("menu/{key}")
-    class Menu(val parent: Cms = Cms(), val key: Int)
+@Resource("menu/{key}")
+private class Menu(val key: Int)
 
-    @Resource("menuitem/{key}")
-    class MenuItem(val parent: Cms = Cms(), val key: Int)
+@Resource("menuitem/{key}")
+private class MenuItem(val key: Int)
 
-    @Resource("menudata/{key}")
-    class MenuData(val parent: Cms = Cms(), val key: Int)
+@Resource("menudata/{key}")
+private class MenuData(val key: Int)
 
-    @Resource("categories/{key}")
-    class Categories(val parent: Cms = Cms(), val key: Int, val depth: Int?)
+@Resource("categories/{key}")
+private class Categories(val key: Int, val depth: Int?)
 
-    @Resource("contentByCategory/{key}")
-    class ContentByCategory(val parent: Cms = Cms(), val key: Int)
-}
+@Resource("contentByCategory/{key}")
+private class ContentByCategory(val key: Int)
 
 private suspend fun documentXmlResponse(call: ApplicationCall, document: Document) {
     call.respondText(documentToString(document) ?: "Failed to parse XML document", ContentType.Text.Xml)
@@ -43,7 +40,7 @@ private suspend fun documentXmlResponse(call: ApplicationCall, document: Documen
 fun Route.cmsClientRoutes() {
     install(CmsClientPlugin)
 
-    get<Cms.Content> { content ->
+    get<Content> { content ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
@@ -51,7 +48,7 @@ fun Route.cmsClientRoutes() {
         )
     }
 
-    get<Cms.Version> { version ->
+    get<Version> { version ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
@@ -59,7 +56,7 @@ fun Route.cmsClientRoutes() {
         )
     }
 
-    get<Cms.Menu> { menu ->
+    get<Menu> { menu ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
@@ -67,7 +64,7 @@ fun Route.cmsClientRoutes() {
         )
     }
 
-    get<Cms.MenuItem> { menuitem ->
+    get<MenuItem> { menuitem ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
@@ -75,7 +72,7 @@ fun Route.cmsClientRoutes() {
         )
     }
 
-    get<Cms.MenuData> { menudata ->
+    get<MenuData> { menudata ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
@@ -83,7 +80,7 @@ fun Route.cmsClientRoutes() {
         )
     }
 
-    get<Cms.Categories> { category ->
+    get<Categories> { category ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
@@ -91,7 +88,7 @@ fun Route.cmsClientRoutes() {
         )
     }
 
-    get<Cms.ContentByCategory> { category ->
+    get<ContentByCategory> { category ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)

@@ -10,7 +10,15 @@ import no.nav.cms.renderer.ContentRenderer
 
 fun Application.configureRouting() {
     routing {
-        cmsClientRoutes()
+        route("/cms") {
+            cmsClientRoutes()
+        }
+
+        route("/opensearch") {
+            get("test") {
+                call.respondText("Hello")
+            }
+        }
 
         route("/render") {
             install(CmsClientPlugin)
