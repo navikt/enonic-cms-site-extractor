@@ -5,9 +5,9 @@ import io.ktor.util.logging.*
 import kotlinx.serialization.json.JsonObject
 
 
-private val logger = KtorSimpleLogger("OpenSearchKtClientWrapper")
+private val logger = KtorSimpleLogger("OpenSearchClientWrapper")
 
-class OpenSearchClientWrapper(searchClient: SearchClient) {
+class OpenSearchClient(searchClient: SearchClient) {
     private val client: SearchClient
 
     init {

@@ -23,8 +23,8 @@ class OpenSearchClientBuilder(
         this.credentials = credentials
     }
 
-    fun buildKtClient(): SearchClient {
-        return SearchClient(
+    fun build(): OpenSearchClient {
+        val searchClient = SearchClient(
             KtorRestClient(
                 host = hostname,
                 port = port,
@@ -33,6 +33,8 @@ class OpenSearchClientBuilder(
                 password = credentials.password
             )
         )
+
+        return OpenSearchClient(searchClient)
     }
 }
 

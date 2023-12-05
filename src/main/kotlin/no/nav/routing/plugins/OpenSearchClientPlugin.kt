@@ -1,6 +1,6 @@
 package no.nav.routing.plugins
 
-import no.nav.db.openSearch.OpenSearchClientWrapper
+import no.nav.db.openSearch.OpenSearchClient
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -9,12 +9,12 @@ import no.nav.db.openSearch.OpenSearchClientBuilder
 import no.nav.utils.parseAuthHeader
 
 
-private val openSearchKtClientKey = AttributeKey<OpenSearchClientWrapper>("openSearchKtClientKey")
+private val openSearchClientKey = AttributeKey<OpenSearchClient>("openSearchClientKey")
 
-fun getOpenSearchKtClientFromCallContext(call: ApplicationCall): OpenSearchClientWrapper =
-    call.attributes[openSearchKtClientKey]
+fun getOpenSearchClientFromCallContext(call: ApplicationCall): OpenSearchClient =
+    call.attributes[openSearchClientKey]
 
-val OpenSearchKtClientPlugin = createRouteScopedPlugin("OpenSearchKtClient") {
+val OpenSearchClientPlugin = createRouteScopedPlugin("OpenSearchClient") {
     onCall { call ->
         val credential = parseAuthHeader(call.request)
         if (credential == null) {
@@ -27,10 +27,8 @@ val OpenSearchKtClientPlugin = createRouteScopedPlugin("OpenSearchKtClient") {
             "opensearch-personbruker-enonic-cms-archive-nav-prod.a.aivencloud.com",
             26482,
             credential
-        ).buildKtClient()
+        ).build()
 
-        val clientWrapper = OpenSearchClientWrapper(client)
-
-        call.attributes.put(openSearchKtClientKey, clientWrapper)
+        call.attributes.put(openSearchClientKey, client)
     }
 }
