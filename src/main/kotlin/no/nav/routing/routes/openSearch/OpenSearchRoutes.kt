@@ -11,13 +11,8 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.routing.plugins.OpenSearchJavaClientPlugin
 import no.nav.routing.plugins.OpenSearchKtClientPlugin
-import no.nav.routing.plugins.getOpenSearchJavaClientFromCallContext
 import no.nav.routing.plugins.getOpenSearchKtClientFromCallContext
-
-@Resource("ping")
-private class Ping
 
 @Resource("info")
 private class Info
@@ -34,60 +29,38 @@ private class Index {
     class Get(val parent: Index = Index(), val index: String)
 }
 
+private suspend fun restExceptionHandler(call: ApplicationCall, ex: RestException) {
+    call.response.status(HttpStatusCode(ex.response.status, ex.response.responseCategory.name))
+    call.respondText(ex.response.text, ContentType.Application.Json)
+}
+
 fun Route.openSearchRoutes() {
-    route("/kt") {
-        install(OpenSearchKtClientPlugin)
-        install(ContentNegotiation) {
-            json()
-        }
-
-        get<Info> {
-            val info = getOpenSearchKtClientFromCallContext(call).info()
-            call.respond(info)
-        }
-
-//        get<Index.Create> { params ->
-//            val result = getOpenSearchKtClientFromCallContext(call).createIndexIfNotExist(params.index)
-//            call.respondText("Created: $result")
-//        }
-//
-//        get<Index.Delete> { params ->
-//            val result = getOpenSearchKtClientFromCallContext(call).deleteIndex(params.index)
-//            call.respondText("Deleted: $result")
-//        }
-
-        get<Index.Get> { params ->
-            try {
-                val result = getOpenSearchKtClientFromCallContext(call).getIndex(params.index)
-                call.respond(result)
-            } catch (ex: RestException) {
-                call.response.status(HttpStatusCode(ex.response.status, ex.response.responseCategory.name))
-                call.respondText(ex.response.text, ContentType.Application.Json)
-            }
-        }
+    install(OpenSearchKtClientPlugin)
+    install(ContentNegotiation) {
+        json()
     }
 
-    route("/java") {
-        install(OpenSearchJavaClientPlugin)
+    get<Info> {
+        val info = getOpenSearchKtClientFromCallContext(call).info()
+        call.respond(info)
+    }
 
-        get<Ping> {
-            val ping = getOpenSearchJavaClientFromCallContext(call).ping()
-            call.respondText("Ping: $ping")
-        }
+    get<Index.Create> { params ->
+        val result = getOpenSearchKtClientFromCallContext(call).createIndexIfNotExist(params.index)
+        call.respondText("Created: $result")
+    }
 
-        get<Index.Create> { params ->
-            val result = getOpenSearchJavaClientFromCallContext(call).createIndexIfNotExist(params.index)
-            call.respondText("Created: $result")
-        }
+    get<Index.Delete> { params ->
+        val result = getOpenSearchKtClientFromCallContext(call).deleteIndex(params.index)
+        call.respond(result)
+    }
 
-        get<Index.Delete> { params ->
-            val result = getOpenSearchJavaClientFromCallContext(call).deleteIndex(params.index)
-            call.respondText("Deleted: $result")
-        }
-
-        get<Index.Get> { params ->
-            val result = getOpenSearchJavaClientFromCallContext(call).getIndex(params.index)
-            call.respond(result ?: "Oh noes")
+    get<Index.Get> { params ->
+        try {
+            val result = getOpenSearchKtClientFromCallContext(call).getIndex(params.index)
+            call.respond(result)
+        } catch (ex: RestException) {
+            restExceptionHandler(call, ex)
         }
     }
 }
