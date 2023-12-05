@@ -1,4 +1,4 @@
-package no.nav.routing.routes.cmsClient
+package no.nav.routing.routes.cms
 
 import io.ktor.http.*
 import io.ktor.http.cio.*
@@ -7,8 +7,8 @@ import io.ktor.server.application.*
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.routing.CmsClientPlugin
-import no.nav.routing.getCmsClientFromCallContext
+import no.nav.routing.plugins.CmsClientPlugin
+import no.nav.routing.plugins.getCmsClientFromCallContext
 import no.nav.utils.documentToString
 import org.jdom.Document
 

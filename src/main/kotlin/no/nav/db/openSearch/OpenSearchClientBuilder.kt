@@ -1,7 +1,6 @@
-package no.nav.openSearch
+package no.nav.db.openSearch
 
 import io.ktor.server.auth.*
-import io.ktor.util.logging.*
 import org.apache.hc.client5.http.auth.AuthScope
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider
@@ -12,8 +11,6 @@ import org.apache.hc.core5.ssl.SSLContextBuilder
 import org.opensearch.client.opensearch.OpenSearchClient
 import org.opensearch.client.transport.httpclient5.ApacheHttpClient5TransportBuilder
 
-
-private val logger = KtorSimpleLogger("OpenSearchClient")
 
 class OpenSearchClientBuilder(
     hostname: String,

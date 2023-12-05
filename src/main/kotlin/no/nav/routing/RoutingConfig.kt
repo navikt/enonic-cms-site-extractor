@@ -1,16 +1,14 @@
 package no.nav.routing
 
-import no.nav.routing.routes.cmsClient.cmsClientRoutes
+import no.nav.routing.routes.cms.cmsClientRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.util.logging.*
 import no.nav.cms.renderer.ContentRenderer
-import no.nav.openSearch.OpenSearchClientBuilder
-import no.nav.utils.parseAuthHeader
-
-private val logger = KtorSimpleLogger("RouteConfig")
+import no.nav.routing.plugins.CmsClientPlugin
+import no.nav.routing.plugins.getCmsClientFromCallContext
+import no.nav.routing.routes.openSearch.openSearchRoutes
 
 fun Application.configureRouting() {
     routing {
@@ -19,23 +17,7 @@ fun Application.configureRouting() {
         }
 
         route("/opensearch") {
-            get("test") {
-                val credentials = parseAuthHeader(call.request)
-                if (credentials == null) {
-                    call.respondText("Oh noes")
-                    return@get
-                }
-
-                val openSearchClient = OpenSearchClientBuilder(
-                    "opensearch-personbruker-enonic-cms-archive-nav-prod.a.aivencloud.com",
-                    26482,
-                    credentials
-                ).build()
-
-                val ping = openSearchClient.ping().value()
-
-                call.respondText("Hello - Ping: $ping")
-            }
+            openSearchRoutes()
         }
 
         route("/render") {
