@@ -3,14 +3,12 @@ package no.nav.db.openSearch
 import io.ktor.util.logging.*
 import org.opensearch.client.opensearch.OpenSearchClient
 import org.opensearch.client.opensearch._types.OpenSearchException
-import org.opensearch.client.opensearch.indices.CreateIndexRequest
-import org.opensearch.client.opensearch.indices.DeleteIndexRequest
-import org.opensearch.client.opensearch.indices.ExistsRequest
+import org.opensearch.client.opensearch.indices.*
 
 
-private val logger = KtorSimpleLogger("OpenSearchClientWrapper")
+private val logger = KtorSimpleLogger("OpenSearchJavaClientWrapper")
 
-class OpenSearchClientWrapper(openSearchClient: OpenSearchClient) {
+class OpenSearchJavaClientWrapper(openSearchClient: OpenSearchClient) {
     private val client: OpenSearchClient
 
     init {
@@ -49,6 +47,18 @@ class OpenSearchClientWrapper(openSearchClient: OpenSearchClient) {
             logger.error("Failed to delete index $index - ${ex.message}")
             false
         }
+    }
+
+    fun getIndex(index: String): GetIndexResponse? {
+        val getIndexRequest = GetIndexRequest.Builder().index(index).build()
+
+        return try {
+            this.client.indices().get(getIndexRequest)
+        } catch (ex: OpenSearchException) {
+            logger.error("Failed to get index $index - ${ex.message}")
+            null
+        }
+
     }
 
     fun ping(): Boolean {

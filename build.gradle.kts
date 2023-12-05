@@ -22,9 +22,14 @@ application {
 repositories {
     mavenCentral()
 
-    maven {
+    maven("https://repo.enonic.com/public") {
         name = "enonic"
-        url = uri("https://repo.enonic.com/public")
+    }
+
+    maven("https://maven.tryformation.com/releases") {
+        content {
+            includeGroup("com.jillesvangurp")
+        }
     }
 }
 
@@ -51,6 +56,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("org.slf4j:slf4j-api:$slf4jVersion")
     implementation("com.enonic.cms:cms-api:4.7.18")
+    implementation("com.jillesvangurp:search-client:2.1.10")
 
     implementation("org.opensearch.client:opensearch-java:2.8.1")
     implementation("org.apache.httpcomponents.client5:httpclient5:5.2.1")

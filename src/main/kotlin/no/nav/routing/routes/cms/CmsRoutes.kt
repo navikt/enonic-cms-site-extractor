@@ -3,7 +3,10 @@ package no.nav.routing.routes.cms
 import io.ktor.http.*
 import io.ktor.http.cio.*
 import io.ktor.resources.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.serialization.kotlinx.xml.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -39,6 +42,10 @@ private suspend fun documentXmlResponse(call: ApplicationCall, document: Documen
 
 fun Route.cmsClientRoutes() {
     install(CmsClientPlugin)
+
+    install(ContentNegotiation) {
+        xml()
+    }
 
     get<Content> { content ->
         documentXmlResponse(

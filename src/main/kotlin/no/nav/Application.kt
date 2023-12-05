@@ -1,5 +1,6 @@
 package no.nav
 
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.serialization.kotlinx.xml.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.callloging.*
@@ -18,10 +19,6 @@ fun Application.module() {
     install(CallLogging) {
         level = Level.INFO
         filter { call -> call.request.path().startsWith("/") }
-    }
-
-    install(ContentNegotiation) {
-        xml()
     }
 
     install(Resources)

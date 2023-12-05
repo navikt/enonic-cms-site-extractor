@@ -1,5 +1,7 @@
 package no.nav.db.openSearch
 
+import com.jillesvangurp.ktsearch.KtorRestClient
+import com.jillesvangurp.ktsearch.SearchClient
 import io.ktor.server.auth.*
 import org.apache.hc.client5.http.auth.AuthScope
 import org.apache.hc.client5.http.auth.UsernamePasswordCredentials
@@ -30,7 +32,19 @@ class OpenSearchClientBuilder(
         this.credentials = credentials
     }
 
-    fun build(): OpenSearchClient {
+    fun buildKtClient(): SearchClient {
+        return SearchClient(
+            KtorRestClient(
+                host = hostname,
+                port = port,
+                https = true,
+                user = credentials.name,
+                password = credentials.password
+            )
+        )
+    }
+
+    fun buildJavaClient(): OpenSearchClient {
         val httpHost = HttpHost("https", hostname, port)
 
         val credentialsProvider = BasicCredentialsProvider()
