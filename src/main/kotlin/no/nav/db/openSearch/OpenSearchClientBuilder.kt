@@ -9,17 +9,17 @@ class OpenSearchClientBuilder(
     hostname: String,
     port: Int,
     credentials: UserPasswordCredential,
-    scheme: String = "https"
+    https: Boolean = true
 ) {
     private val hostname: String
     private val port: Int
-    private val scheme: String
+    private val https: Boolean
     private val credentials: UserPasswordCredential
 
     init {
         this.hostname = hostname
         this.port = port
-        this.scheme = scheme
+        this.https = https
         this.credentials = credentials
     }
 
@@ -28,7 +28,7 @@ class OpenSearchClientBuilder(
             KtorRestClient(
                 host = hostname,
                 port = port,
-                https = true,
+                https = https,
                 user = credentials.name,
                 password = credentials.password
             )

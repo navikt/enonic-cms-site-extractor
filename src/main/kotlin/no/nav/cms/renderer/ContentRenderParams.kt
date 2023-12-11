@@ -30,16 +30,29 @@ class ContentRenderParamsBuilder(contentElement: Element, cmsClient: CmsClient) 
     suspend fun build(): ContentRenderParams? {
         try {
             val contentKey = getContentKey()
-            val versionKeyFinal = getVersionKey()
+            logger.info("Content key: $contentKey")
+
+            val versionKey = getVersionKey()
+            logger.info("Version key: $versionKey")
+
             val pageKey = getPageKey()
+            logger.info("Page key: $pageKey")
+
             val unitKey = getUnitKey()
-            val siteKey = getSiteKey()
-            val menuItemKey = getMenuItemKey()
-            val pageTemplateKey = getPageTemplateKey(contentKey, versionKeyFinal, pageKey, unitKey)
+            logger.info("Unit key: $unitKey")
+
+            val siteKey = getSiteKey() ?: "20"
+            logger.info("Site key: $siteKey")
+
+            val menuItemKey = getMenuItemKey() ?: "16065"
+            logger.info("Menuitem key: $menuItemKey")
+
+            val pageTemplateKey = getPageTemplateKey(contentKey, versionKey, pageKey, unitKey) ?: "553"
+            logger.info("Pagetemplate key: $pageTemplateKey")
 
             return ContentRenderParams(
                 contentkey = contentKey,
-                versionkey = versionKeyFinal,
+                versionkey = versionKey,
                 page = pageKey,
                 selectedunitkey = unitKey,
                 menukey = siteKey,
@@ -56,21 +69,21 @@ class ContentRenderParamsBuilder(contentElement: Element, cmsClient: CmsClient) 
         return this.contentElement.getAttribute("key").value
     }
 
-    private fun getSiteKey(): String {
+    private fun getSiteKey(): String? {
         return this.contentElement
             .getChild("location")
-            .getChild("site")
-            .getAttribute("key")
-            .value
+            ?.getChild("site")
+            ?.getAttribute("key")
+            ?.value
     }
 
-    private fun getMenuItemKey(): String {
+    private fun getMenuItemKey(): String? {
         return this.contentElement
             .getChild("location")
-            .getChild("site")
-            .getChild("contentlocation")
-            .getAttribute("menuitemkey")
-            .value
+            ?.getChild("site")
+            ?.getChild("contentlocation")
+            ?.getAttribute("menuitemkey")
+            ?.value
     }
 
     private fun getUnitKey(): String {
@@ -100,11 +113,14 @@ class ContentRenderParamsBuilder(contentElement: Element, cmsClient: CmsClient) 
         versionKey: String,
         pageKey: String,
         unitKey: String
-    ): String {
+    ): String? {
         val result = this.cmsClient
             .getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
 
+        if (result == null) {
+            logger.info("Could not retrieve pageTemplateKey for $contentKey $versionKey $pageKey $unitKey")
+        }
+
         return result
-            ?: throw Exception("Could not retrieve pageTemplateKey for $contentKey $versionKey $pageKey $unitKey")
     }
 }

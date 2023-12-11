@@ -23,7 +23,7 @@ fun Application.configureRouting() {
         route("/render") {
             install(CmsClientPlugin)
 
-            get("/{contentKey}") {
+            get("/content/{contentKey}") {
                 val contentKey = call.parameters["contentKey"]?.toInt()
 
                 if (contentKey == null) {
@@ -34,9 +34,23 @@ fun Application.configureRouting() {
 
                 val client = getCmsClientFromCallContext(call)
 
-                val contentRenderer = ContentRenderer(contentKey, client)
+                val result = ContentRenderer(client).renderContent(contentKey)
 
-                val result = contentRenderer.render()
+                call.respondText(result ?: "Oh noes")
+            }
+
+            get("/version/{versionKey}") {
+                val versionKey = call.parameters["versionKey"]?.toInt()
+
+                if (versionKey == null) {
+                    call.response.status(HttpStatusCode.BadRequest)
+                    call.respondText("Parameter versionKey must be specified")
+                    return@get
+                }
+
+                val client = getCmsClientFromCallContext(call)
+
+                val result = ContentRenderer(client).renderVersion(versionKey)
 
                 call.respondText(result ?: "Oh noes")
             }

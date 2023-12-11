@@ -5,6 +5,7 @@ import com.enonic.cms.api.client.ClientFactory
 import com.enonic.cms.api.client.RemoteClient
 import com.enonic.cms.api.client.model.GetCategoriesParams
 import com.enonic.cms.api.client.model.GetContentByCategoryParams
+import com.enonic.cms.api.client.model.GetContentByQueryParams
 import com.enonic.cms.api.client.model.GetContentParams
 import com.enonic.cms.api.client.model.GetContentVersionsParams
 import com.enonic.cms.api.client.model.GetMenuDataParams
@@ -27,27 +28,30 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
 
     init {
         this.cmsOrigin = cmsOrigin
-        this.rpcClient = ClientFactory.getRemoteClient(cmsOrigin.plus(RPC_PATH))
+
         this.restClient = CmsRestClient(cmsOrigin, credential)
+
+        this.rpcClient = ClientFactory.getRemoteClient(cmsOrigin.plus(RPC_PATH))
+        rpcLogin(credential)
     }
 
-    fun login(username: String, password: String): Boolean {
+    private fun rpcLogin(credential: UserPasswordCredential) {
         return try {
-            rpcClient.login(username, password)
+            rpcClient.login(credential.name, credential.password)
             logger.info("Logged in as ${rpcClient.userName}")
-            true
         } catch (e: ClientException) {
-            logger.error("Login failed for user $username - ${e.message}")
-            false
+            logger.error("Login failed for user ${credential.name} - ${e.message}")
+            throw e
         }
     }
 
     fun getContent(contentKeys: IntArray): Document {
         val params = GetContentParams()
         params.contentKeys = contentKeys
-        params.includeData = false
+        params.includeData = true
         params.includeVersionsInfo = true
         params.includeOfflineContent = true
+        params.includeUserRights = false
 
         return rpcClient.getContent(params)
     }
@@ -100,6 +104,18 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         params.includeData = false
 
         return rpcClient.getContentByCategory(params)
+    }
+
+    fun getContentByQuery(query: String): Document {
+        val params = GetContentByQueryParams()
+        params.includeOfflineContent = true
+        params.includeData = false
+        params.includeOfflineContent = true
+        params.includeVersionsInfo = false
+        params.includeUserRights = false
+        params.query = query
+
+        return rpcClient.getContentByQuery(params)
     }
 
     fun getMenuData(menuKey: Int): Document {

@@ -1,5 +1,6 @@
 package no.nav.routing.plugins
 
+import com.enonic.cms.api.client.ClientException
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -27,12 +28,15 @@ val CmsClientPlugin = createRouteScopedPlugin("CmsClient") {
             return@onCall
         }
 
-        val client = CmsClient(url, credential)
+        val client = try {
+            CmsClient(url, credential)
+        } catch (e: ClientException) {
+            null
+        }
 
-        val didLogin = client.login(credential.name, credential.password)
-        if (!didLogin) {
+        if (client == null) {
             call.response.status(HttpStatusCode.Unauthorized)
-            call.respondText("Login failed for ${credential.name} to $url")
+            call.respondText("Failed to initialize CMS client for ${credential.name} to $url")
             return@onCall
         }
 

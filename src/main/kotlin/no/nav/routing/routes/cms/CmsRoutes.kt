@@ -21,6 +21,9 @@ private class Content(val key: Int)
 @Resource("version/{key}")
 private class Version(val key: Int)
 
+@Resource("content/query")
+private class ContentByQuery(val query: String)
+
 @Resource("menu/{key}")
 private class Menu(val key: Int)
 
@@ -47,59 +50,67 @@ fun Route.cmsClientRoutes() {
         xml()
     }
 
-    get<Content> { content ->
+    get<Content> { params ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getContent(content.key)
+                .getContent(params.key)
         )
     }
 
-    get<Version> { version ->
+    get<Version> { params ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getContentVersion(version.key)
+                .getContentVersion(params.key)
         )
     }
 
-    get<Menu> { menu ->
+    get<ContentByQuery> { params ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getMenu(menu.key)
+                .getContentByQuery(params.query)
         )
     }
 
-    get<MenuItem> { menuitem ->
+    get<Menu> { params ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getMenuItem(menuitem.key)
+                .getMenu(params.key)
         )
     }
 
-    get<MenuData> { menudata ->
+    get<MenuItem> { params ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getMenuData(menudata.key)
+                .getMenuItem(params.key)
         )
     }
 
-    get<Categories> { category ->
+    get<MenuData> { params ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getCategories(category.key, category.depth)
+                .getMenuData(params.key)
         )
     }
 
-    get<ContentByCategory> { category ->
+    get<Categories> { params ->
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getContentByCategory(category.key)
+                .getCategories(params.key, params.depth)
+        )
+    }
+
+    get<ContentByCategory> { params ->
+        documentXmlResponse(
+            call,
+            getCmsClientFromCallContext(call)
+                .getContentByCategory(params.key)
         )
     }
 }

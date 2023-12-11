@@ -5,7 +5,9 @@ import io.ktor.util.logging.*
 import kotlinx.serialization.json.JsonObject
 
 
-private val logger = KtorSimpleLogger("OpenSearchClientWrapper")
+private val logger = KtorSimpleLogger("OpenSearchClient")
+
+
 
 class OpenSearchClient(searchClient: SearchClient) {
     private val client: SearchClient
@@ -25,7 +27,13 @@ class OpenSearchClient(searchClient: SearchClient) {
             return true
         }
 
-        return this.client.createIndex(index).acknowledged
+        val result = this.client.createIndex(index) {
+            mappings(dynamicEnabled = false) {
+
+            }
+        }
+
+        return result.acknowledged
     }
 
     suspend fun deleteIndex(index: String) {

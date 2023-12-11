@@ -128,8 +128,10 @@ class CmsRestClient(cmsOrigin: String, credential: UserPasswordCredential) {
         val body = response.bodyAsText()
 
         return Regex("""pagetemplatekey=(?<pageTemplateKey>\d+)""")
-            .find(body)?.groups
-            ?.get("pageTemplateKey")?.value
+            .find(body)
+            ?.groups
+            ?.get("pageTemplateKey")
+            ?.value
     }
 
     suspend fun renderContent(params: ContentRenderParams): String? {

@@ -14,6 +14,7 @@ import io.ktor.server.routing.*
 import no.nav.routing.plugins.OpenSearchClientPlugin
 import no.nav.routing.plugins.getOpenSearchClientFromCallContext
 
+
 @Resource("info")
 private class Info
 
