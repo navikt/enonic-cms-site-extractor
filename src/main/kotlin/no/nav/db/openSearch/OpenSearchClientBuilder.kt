@@ -37,4 +37,3 @@ class OpenSearchClientBuilder(
         return OpenSearchClient(searchClient)
     }
 }
-

@@ -1,4 +1,4 @@
-package no.nav.db.openSearch.documents
+package no.nav.db.openSearch.index
 
 import java.util.*
 
@@ -26,15 +26,15 @@ data class VersionReference(
     val timestamp: Date,
 
     val title: String,
+    val comment: String,
     val modifier: CmsUser,
-    val comment: String
 )
 
 data class ContentLocation(
     val siteKey: Int,
 
     val type: String,
-    val menyItemKey: Int,
+    val menuItemKey: Int,
     val menuItemName: String,
     val menuItemPath: String,
     val menuItemDisplayName: String,
@@ -51,8 +51,6 @@ data class ContentMetaData(
     val languageKey: Int,
     val priority: Int,
 
-    val category: ContentCategory,
-
     val contentType: String,
     val contentTypeKey: Int,
 
@@ -60,6 +58,8 @@ data class ContentMetaData(
     val timestamp: Date,
     val publishFrom: Date,
     val publishTo: Date,
+
+    val category: ContentCategory,
 )
 
 data class ContentDocument(
