@@ -10,6 +10,7 @@ import no.nav.routing.plugins.CmsClientPlugin
 import no.nav.routing.plugins.getCmsClientFromCallContext
 import no.nav.routing.routes.openSearch.openSearchRoutes
 
+
 fun Application.configureRouting() {
     routing {
         route("/cms") {

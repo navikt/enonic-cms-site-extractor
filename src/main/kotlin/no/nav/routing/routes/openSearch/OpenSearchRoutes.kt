@@ -49,7 +49,6 @@ private suspend fun restExceptionHandler(call: ApplicationCall, ex: RestExceptio
 
 fun Route.openSearchRoutes() {
     install(OpenSearchClientPlugin)
-    install(CmsClientPlugin)
     install(ContentNegotiation) {
         json()
     }
