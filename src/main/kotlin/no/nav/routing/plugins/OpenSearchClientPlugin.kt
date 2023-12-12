@@ -23,7 +23,7 @@ val OpenSearchClientPlugin = createRouteScopedPlugin("OpenSearchClient") {
     onCall { call ->
         if (host == null || port == null || user == null || password == null) {
             call.response.status(HttpStatusCode.InternalServerError)
-            call.respondText("OpenSearch is not configured")
+            call.respondText("OpenSearch service parameters not found")
             return@onCall
         }
 
