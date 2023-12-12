@@ -6,6 +6,9 @@ import no.nav.cms.utils.getContentElement
 import no.nav.utils.documentToString
 import org.jdom.Document
 import org.jdom.Element
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 
 
 class OpenSearchContentDocumentBuilder(cmsClient: CmsClient) {
@@ -35,8 +38,6 @@ class OpenSearchContentDocumentBuilder(cmsClient: CmsClient) {
 
         return OpenSearchContentDocument(
             path = "",
-            html = html,
-            xmlAsString = documentXml,
             contentKey = contentElement.getAttributeValue("key"),
             versionKey = contentElement.getAttributeValue("versionkey"),
             isCurrentVersion = contentElement.getAttribute("current").booleanValue,
@@ -44,7 +45,9 @@ class OpenSearchContentDocumentBuilder(cmsClient: CmsClient) {
             displayName = contentElement.getChildText("display-name"),
             versions = getVersionReferences(contentElement),
             locations = getLocations(contentElement),
-            meta = getMetaData(contentElement)
+            meta = getMetaData(contentElement),
+            html = html,
+            xmlAsString = documentXml,
         )
     }
 
@@ -53,16 +56,16 @@ class OpenSearchContentDocumentBuilder(cmsClient: CmsClient) {
             unitKey = element.getAttributeValue("unitkey"),
             state = element.getAttributeValue("state"),
             status = element.getAttributeValue("status"),
-            published = element.getAttributeValue("published"),
+            published = parseDateTime(element.getAttributeValue("published")),
             languageCode = element.getAttributeValue("languagecode"),
             languageKey = element.getAttributeValue("languagekey"),
             priority = element.getAttributeValue("priority"),
             contentType = element.getAttributeValue("contenttype"),
             contentTypeKey = element.getAttributeValue("contenttypekey"),
-            created = element.getAttributeValue("created"),
-            timestamp = element.getAttributeValue("timestamp"),
-            publishFrom = element.getAttributeValue("publishfrom"),
-            publishTo = element.getAttributeValue("publishto"),
+            created = parseDateTime(element.getAttributeValue("created")),
+            timestamp = parseDateTime(element.getAttributeValue("timestamp")),
+            publishFrom = parseDateTime(element.getAttributeValue("publishfrom")),
+            publishTo = parseDateTime(element.getAttributeValue("publishto")),
             category = getCategory(element),
             owner = transformToCmsUser(element.getChild("owner")),
             modifier = transformToCmsUser(element.getChild("modifier")),
@@ -110,7 +113,7 @@ class OpenSearchContentDocumentBuilder(cmsClient: CmsClient) {
                     key = it.getAttributeValue("key"),
                     statusKey = it.getAttributeValue("status-key"),
                     status = it.getAttributeValue("status"),
-                    timestamp = it.getAttributeValue("timestamp"),
+                    timestamp = parseDateTime(it.getAttributeValue("timestamp")),
                     title = it.getChildText("title"),
                     comment = it.getChildText("comment"),
                     modifier = transformToCmsUser(it.getChild("modifier"))
@@ -125,5 +128,19 @@ class OpenSearchContentDocumentBuilder(cmsClient: CmsClient) {
             displayName = element.getChildText("display-name"),
             email = element.getChildText("email")
         )
+    }
+
+    private fun parseDateTime(datetime: String?): String? {
+        if (datetime == null) {
+            return null
+        }
+
+        return try {
+            LocalDateTime
+                .parse(datetime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm[:ss][.S][S][S]"))
+                .toString()
+        } catch (e: DateTimeParseException) {
+            return null
+        }
     }
 }

@@ -16,7 +16,7 @@ import no.nav.routing.plugins.getOpenSearchClientFromCallContext
 
 
 @Resource("info")
-private class Info
+private class Info(val input: String?)
 
 @Resource("index")
 private class Index {

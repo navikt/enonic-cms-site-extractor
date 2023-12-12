@@ -41,7 +41,7 @@ class OpenSearchClient(searchClient: SearchClient) {
         return this.client.getIndex(index)
     }
 
-    suspend fun indexDocument(index: String, document: OpenSearchContentDocument): DocumentIndexResponse {
-        return this.client.indexDocument(index, document)
+    suspend fun indexDocument(index: String, document: OpenSearchContentDocument, id: String): DocumentIndexResponse {
+        return this.client.indexDocument(target = index, document = document, id = id)
     }
 }
