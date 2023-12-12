@@ -11,7 +11,10 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import no.nav.db.openSearch.documents.OpenSearchContentDocumentBuilder
+import no.nav.routing.plugins.CmsClientPlugin
 import no.nav.routing.plugins.OpenSearchClientPlugin
+import no.nav.routing.plugins.getCmsClientFromCallContext
 import no.nav.routing.plugins.getOpenSearchClientFromCallContext
 
 
@@ -30,6 +33,15 @@ private class Index {
     class Get(val parent: Index = Index(), val index: String)
 }
 
+@Resource("build")
+private class Build {
+    @Resource("content/{contentKey}")
+    class Content(val parent: Build = Build(), val contentKey: Int)
+
+    @Resource("version/{versionKey}")
+    class Version(val parent: Build = Build(), val versionKey: Int)
+}
+
 private suspend fun restExceptionHandler(call: ApplicationCall, ex: RestException) {
     call.response.status(HttpStatusCode(ex.response.status, ex.response.responseCategory.name))
     call.respondText(ex.response.text, ContentType.Application.Json)
@@ -37,6 +49,7 @@ private suspend fun restExceptionHandler(call: ApplicationCall, ex: RestExceptio
 
 fun Route.openSearchRoutes() {
     install(OpenSearchClientPlugin)
+    install(CmsClientPlugin)
     install(ContentNegotiation) {
         json()
     }
@@ -47,7 +60,7 @@ fun Route.openSearchRoutes() {
     }
 
     get<Index.Create> { params ->
-        val result = getOpenSearchClientFromCallContext(call).createIndexIfNotExist(params.index)
+        val result = getOpenSearchClientFromCallContext(call).createIndices(params.index)
         call.respondText("Created: $result")
     }
 
@@ -63,5 +76,13 @@ fun Route.openSearchRoutes() {
         } catch (ex: RestException) {
             restExceptionHandler(call, ex)
         }
+    }
+
+    get<Build.Content> {
+        val client = getCmsClientFromCallContext(call)
+
+        val document = OpenSearchContentDocumentBuilder(client).buildDocumentFromContent(it.contentKey)
+
+        call.respond(document ?: "oh noes")
     }
 }

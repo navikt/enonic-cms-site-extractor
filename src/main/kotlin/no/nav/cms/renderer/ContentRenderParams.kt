@@ -41,14 +41,26 @@ class ContentRenderParamsBuilder(contentElement: Element, cmsClient: CmsClient) 
             val unitKey = getUnitKey()
             logger.info("Unit key: $unitKey")
 
-            val siteKey = getSiteKey() ?: "20"
+            val siteKey = getSiteKey()
             logger.info("Site key: $siteKey")
 
-            val menuItemKey = getMenuItemKey() ?: "16065"
+            if (siteKey == null) {
+                return null
+            }
+
+            val menuItemKey = getMenuItemKey()
             logger.info("Menuitem key: $menuItemKey")
 
-            val pageTemplateKey = getPageTemplateKey(contentKey, versionKey, pageKey, unitKey) ?: "553"
+            if (menuItemKey == null) {
+                return null
+            }
+
+            val pageTemplateKey = getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
             logger.info("Pagetemplate key: $pageTemplateKey")
+
+            if (pageTemplateKey == null) {
+                return null
+            }
 
             return ContentRenderParams(
                 contentkey = contentKey,
