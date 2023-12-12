@@ -21,7 +21,7 @@ class OpenSearchContentDocumentBuilder(cmsClient: CmsClient) {
     }
 
     suspend fun buildDocumentFromVersion(versionKey: Int): OpenSearchContentDocument? {
-        val document = cmsClient.getContent(versionKey)
+        val document = cmsClient.getContentVersion(versionKey)
         return transform(document)
     }
 

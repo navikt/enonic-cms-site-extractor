@@ -11,10 +11,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.db.openSearch.documents.OpenSearchContentDocumentBuilder
-import no.nav.routing.plugins.CmsClientPlugin
 import no.nav.routing.plugins.OpenSearchClientPlugin
-import no.nav.routing.plugins.getCmsClientFromCallContext
 import no.nav.routing.plugins.getOpenSearchClientFromCallContext
 
 
@@ -23,23 +20,14 @@ private class Info
 
 @Resource("index")
 private class Index {
-    @Resource("create")
+    @Resource("create/{index}")
     class Create(val parent: Index = Index(), val index: String)
 
-    @Resource("delete")
+    @Resource("delete/{index}")
     class Delete(val parent: Index = Index(), val index: String)
 
-    @Resource("get")
+    @Resource("get/{index}")
     class Get(val parent: Index = Index(), val index: String)
-}
-
-@Resource("build")
-private class Build {
-    @Resource("content/{contentKey}")
-    class Content(val parent: Build = Build(), val contentKey: Int)
-
-    @Resource("version/{versionKey}")
-    class Version(val parent: Build = Build(), val versionKey: Int)
 }
 
 private suspend fun restExceptionHandler(call: ApplicationCall, ex: RestException) {
@@ -75,13 +63,5 @@ fun Route.openSearchRoutes() {
         } catch (ex: RestException) {
             restExceptionHandler(call, ex)
         }
-    }
-
-    get<Build.Content> {
-        val client = getCmsClientFromCallContext(call)
-
-        val document = OpenSearchContentDocumentBuilder(client).buildDocumentFromContent(it.contentKey)
-
-        call.respond(document ?: "oh noes")
     }
 }

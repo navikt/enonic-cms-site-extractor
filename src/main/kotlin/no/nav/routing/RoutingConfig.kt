@@ -1,5 +1,6 @@
 package no.nav.routing
 
+import indexingRoutes
 import no.nav.routing.routes.cms.cmsClientRoutes
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -19,6 +20,10 @@ fun Application.configureRouting() {
 
         route("/opensearch") {
             openSearchRoutes()
+        }
+
+        route("/indexing") {
+            indexingRoutes()
         }
 
         route("/render") {

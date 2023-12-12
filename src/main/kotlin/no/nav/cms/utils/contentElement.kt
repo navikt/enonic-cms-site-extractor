@@ -12,10 +12,12 @@ private val logger = KtorSimpleLogger("getContentElement")
 fun getContentElement(document: Document): Element? {
     val contentElement = document
         .rootElement
-        .getChild("content")
+        ?.getChild("content")
 
-    if (contentElement.name != CONTENT_ELEMENT_NAME) {
-        logger.error("Element is not a valid content element (expected $CONTENT_ELEMENT_NAME - got ${contentElement.name}")
+    val elementName = contentElement?.name
+
+    if (elementName != CONTENT_ELEMENT_NAME) {
+        logger.error("Element is not a valid content element (expected $CONTENT_ELEMENT_NAME - got $elementName")
         return null
     }
 
