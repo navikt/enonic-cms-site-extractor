@@ -35,7 +35,7 @@ class OpenSearchCategoryDocumentBuilder(private val cmsClient: CmsClient) {
             .map {
                 CategoryRefData(
                     key = it.getAttributeValue("key"),
-                    name = it.getAttributeValue("name"),
+                    name = it.getChildText("title"),
                 )
             }
     }
