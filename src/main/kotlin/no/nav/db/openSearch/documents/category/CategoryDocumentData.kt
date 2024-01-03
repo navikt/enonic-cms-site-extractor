@@ -1,5 +1,6 @@
 package no.nav.db.openSearch.documents.category
 
+import CategoryRefData
 import kotlinx.serialization.Serializable
 
 
@@ -12,5 +13,5 @@ data class OpenSearchCategoryDocument(
 
     val contentTypeKey: String?,
     val superKey: String?,
-    val childrenKeys: List<String>?
+    val categories: List<CategoryRefData>?,
 )

@@ -1,21 +1,9 @@
 package no.nav.db.openSearch.documents.content
 
+import CategoryRefData
+import no.nav.db.openSearch.documents._partials.cmsUser.CmsUserData
 import kotlinx.serialization.Serializable
 
-
-@Serializable
-data class CmsUser(
-    val userstore: String?,
-    val name: String?,
-    val displayName: String?,
-    val email: String?,
-)
-
-@Serializable
-data class ContentCategory(
-    val key: String?,
-    val name: String?,
-)
 
 @Serializable
 data class ContentVersionReference(
@@ -25,7 +13,7 @@ data class ContentVersionReference(
     val timestamp: String?,
     val title: String?,
     val comment: String?,
-    val modifier: CmsUser?,
+    val modifier: CmsUserData?,
 )
 
 @Serializable
@@ -57,10 +45,10 @@ data class ContentMetaData(
     val publishFrom: String?,
     val publishTo: String?,
 
-    val category: ContentCategory?,
+    val category: CategoryRefData?,
 
-    val owner: CmsUser?,
-    val modifier: CmsUser?,
+    val owner: CmsUserData?,
+    val modifier: CmsUserData?,
 )
 
 @Serializable

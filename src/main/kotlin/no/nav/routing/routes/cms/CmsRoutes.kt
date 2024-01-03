@@ -1,9 +1,7 @@
 package no.nav.routing.routes.cms
 
 import io.ktor.http.*
-import io.ktor.http.cio.*
 import io.ktor.resources.*
-import io.ktor.serialization.kotlinx.json.*
 import io.ktor.serialization.kotlinx.xml.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -12,8 +10,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.routing.plugins.CmsClientPlugin
 import no.nav.routing.plugins.getCmsClientFromCallContext
-import no.nav.utils.documentToString
-import org.jdom.Document
+import no.nav.utils.xmlToString
+import org.jdom.Parent
 
 @Resource("content/{key}")
 private class Content(val key: Int)
@@ -39,12 +37,17 @@ private class Categories(val key: Int, val depth: Int? = 1)
 @Resource("contentByCategory/{key}")
 private class ContentByCategory(val key: Int, val depth: Int? = null, val index: Int? = null, val count: Int? = null)
 
-private suspend fun documentXmlResponse(call: ApplicationCall, document: Document) {
-    val documentString = documentToString(document);
+private suspend fun <T : Parent> xmlResponse(call: ApplicationCall, xml: T?) {
+    if (xml == null) {
+        call.response.status(HttpStatusCode.InternalServerError)
+        return call.respondText("No XML provided")
+    }
+
+    val documentString = xmlToString(xml)
 
     if (documentString == null) {
         call.response.status(HttpStatusCode.InternalServerError)
-        return call.respondText("Failed to parse XML document")
+        return call.respondText("Failed to parse XML")
     }
 
     call.respondText(documentString, ContentType.Text.Xml)
@@ -58,7 +61,7 @@ fun Route.cmsClientRoutes() {
     }
 
     get<Content> { params ->
-        documentXmlResponse(
+        xmlResponse(
             call,
             getCmsClientFromCallContext(call)
                 .getContent(params.key)
@@ -66,7 +69,7 @@ fun Route.cmsClientRoutes() {
     }
 
     get<Version> { params ->
-        documentXmlResponse(
+        xmlResponse(
             call,
             getCmsClientFromCallContext(call)
                 .getContentVersion(params.key)
@@ -74,7 +77,7 @@ fun Route.cmsClientRoutes() {
     }
 
     get<ContentByQuery> { params ->
-        documentXmlResponse(
+        xmlResponse(
             call,
             getCmsClientFromCallContext(call)
                 .getContentByQuery(params.query)
@@ -82,7 +85,7 @@ fun Route.cmsClientRoutes() {
     }
 
     get<Menu> { params ->
-        documentXmlResponse(
+        xmlResponse(
             call,
             getCmsClientFromCallContext(call)
                 .getMenu(params.key)
@@ -90,7 +93,7 @@ fun Route.cmsClientRoutes() {
     }
 
     get<MenuItem> { params ->
-        documentXmlResponse(
+        xmlResponse(
             call,
             getCmsClientFromCallContext(call)
                 .getMenuItem(params.key)
@@ -98,7 +101,7 @@ fun Route.cmsClientRoutes() {
     }
 
     get<MenuData> { params ->
-        documentXmlResponse(
+        xmlResponse(
             call,
             getCmsClientFromCallContext(call)
                 .getMenuData(params.key)
@@ -106,15 +109,15 @@ fun Route.cmsClientRoutes() {
     }
 
     get<Categories> { params ->
-        documentXmlResponse(
+        xmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getCategories(params.key, params.depth)
+                .getCategory(params.key, params.depth)
         )
     }
 
     get<ContentByCategory> { params ->
-        documentXmlResponse(
+        xmlResponse(
             call,
             getCmsClientFromCallContext(call)
                 .getContentByCategory(params.key, params.depth, params.index, params.count)

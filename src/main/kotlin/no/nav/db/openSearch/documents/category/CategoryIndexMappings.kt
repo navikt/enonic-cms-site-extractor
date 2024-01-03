@@ -1,18 +1,16 @@
 package no.nav.db.openSearch.documents.category
 
-import com.jillesvangurp.searchdsls.mappingdsl.FieldMappings
+import no.nav.db.openSearch.documents.IndexMappings
+import no.nav.db.openSearch.documents._partials.categoryRef.categoryRefIndexMappings
 
 
-typealias Mappings = (FieldMappings.() -> Unit)
-
-val categoryIndexMappings: Mappings = {
+val categoryIndexMappings: IndexMappings = {
     text(OpenSearchCategoryDocument::xmlAsString)
 
     keyword(OpenSearchCategoryDocument::key)
-    keyword(OpenSearchCategoryDocument::contentTypeKey)
-    keyword(OpenSearchCategoryDocument::superKey)
-
     text(OpenSearchCategoryDocument::title)
 
-//    objField(OpenSearchContentDocument::versions, null, versions)
+    keyword(OpenSearchCategoryDocument::contentTypeKey)
+    keyword(OpenSearchCategoryDocument::superKey)
+    objField(OpenSearchCategoryDocument::categories, null, categoryRefIndexMappings)
 }

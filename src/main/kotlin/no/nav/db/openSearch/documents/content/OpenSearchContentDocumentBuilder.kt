@@ -1,9 +1,11 @@
 package no.nav.db.openSearch.documents.content
 
+import CategoryRefData
+import no.nav.db.openSearch.documents._partials.cmsUser.CmsUserData
 import no.nav.cms.client.CmsClient
 import no.nav.cms.renderer.ContentRenderer
 import no.nav.cms.utils.getContentElement
-import no.nav.utils.documentToString
+import no.nav.utils.xmlToString
 import org.jdom.Document
 import org.jdom.Element
 import java.time.LocalDateTime
@@ -25,7 +27,7 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
 
     private suspend fun transform(cmsDocument: Document): OpenSearchContentDocument? {
         val contentElement = getContentElement(cmsDocument) ?: return null
-        val documentXml = documentToString(contentElement.document) ?: return null
+        val documentXml = xmlToString(contentElement.document) ?: return null
         val html = ContentRenderer(this.cmsClient).renderDocument(cmsDocument)
 
         return OpenSearchContentDocument(
@@ -64,10 +66,10 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
         )
     }
 
-    private fun getCategory(element: Element): ContentCategory {
+    private fun getCategory(element: Element): CategoryRefData {
         val category = element.getChild("category")
 
-        return ContentCategory(
+        return CategoryRefData(
             key = category.getAttributeValue("key"),
             name = category.getAttributeValue("name")
         )
@@ -113,8 +115,8 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
             }
     }
 
-    private fun transformToCmsUser(element: Element): CmsUser {
-        return CmsUser(
+    private fun transformToCmsUser(element: Element): CmsUserData {
+        return CmsUserData(
             userstore = element.getChildText("userstore"),
             name = element.getChildText("name"),
             displayName = element.getChildText("display-name"),

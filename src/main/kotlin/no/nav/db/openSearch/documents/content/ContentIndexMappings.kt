@@ -1,18 +1,11 @@
 package no.nav.db.openSearch.documents.content
 
-import com.jillesvangurp.searchdsls.mappingdsl.FieldMappings
+import no.nav.db.openSearch.documents.IndexMappings
+import no.nav.db.openSearch.documents._partials.categoryRef.categoryRefIndexMappings
+import no.nav.db.openSearch.documents._partials.cmsUser.cmsUserIndexMappings
 
 
-typealias Mappings = (FieldMappings.() -> Unit)
-
-private val cmsUser: Mappings = {
-    keyword(CmsUser::userstore)
-    text(CmsUser::name)
-    text(CmsUser::displayName)
-    text(CmsUser::email)
-}
-
-private val versions: Mappings = {
+private val versions: IndexMappings = {
     keyword(ContentVersionReference::key)
     keyword(ContentVersionReference::statusKey)
     keyword(ContentVersionReference::status)
@@ -21,15 +14,10 @@ private val versions: Mappings = {
     text(ContentVersionReference::title)
     text(ContentVersionReference::comment)
 
-    objField(ContentVersionReference::modifier, null, cmsUser)
+    objField(ContentVersionReference::modifier, null, cmsUserIndexMappings)
 }
 
-private val category: Mappings = {
-    keyword(ContentCategory::key)
-    keyword(ContentCategory::name)
-}
-
-private val meta: Mappings = {
+private val meta: IndexMappings = {
     keyword(ContentMetaData::unitKey)
     keyword(ContentMetaData::state)
     keyword(ContentMetaData::status)
@@ -46,13 +34,13 @@ private val meta: Mappings = {
     date(ContentMetaData::publishFrom)
     date(ContentMetaData::publishTo)
 
-    objField(ContentMetaData::category, null, category)
+    objField(ContentMetaData::category, null, categoryRefIndexMappings)
 
-    objField(ContentMetaData::owner, null, cmsUser)
-    objField(ContentMetaData::modifier, null, cmsUser)
+    objField(ContentMetaData::owner, null, cmsUserIndexMappings)
+    objField(ContentMetaData::modifier, null, cmsUserIndexMappings)
 }
 
-private val locations: Mappings = {
+private val locations: IndexMappings = {
     keyword(ContentLocation::siteKey)
     keyword(ContentLocation::type)
     keyword(ContentLocation::menuItemKey)
@@ -62,7 +50,7 @@ private val locations: Mappings = {
     bool(ContentLocation::home)
 }
 
-val contentIndexMappings: Mappings = {
+val contentIndexMappings: IndexMappings = {
     keyword(OpenSearchContentDocument::path)
 
     text(OpenSearchContentDocument::html)

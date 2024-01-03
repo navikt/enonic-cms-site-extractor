@@ -15,6 +15,7 @@ import io.ktor.server.auth.*
 import io.ktor.util.logging.*
 import no.nav.cms.renderer.ContentRenderParams
 import org.jdom.Document
+import org.jdom.Element
 
 
 private const val RPC_PATH = "/rpc/bin"
@@ -88,13 +89,15 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         return rpcClient.getMenuItem(params)
     }
 
-    fun getCategories(categoryKey: Int, depth: Int?): Document {
+    fun getCategory(categoryKey: Int, depth: Int? = 1): Element? {
         val params = GetCategoriesParams()
         params.categoryKey = categoryKey
         params.includeTopCategory = true
         params.levels = depth ?: 1
 
         return rpcClient.getCategories(params)
+            ?.rootElement
+            ?.getChild("category")
     }
 
     fun getContentByCategory(categoryKey: Int, depth: Int? = 1, index: Int? = 0, count: Int? = 100): Document {

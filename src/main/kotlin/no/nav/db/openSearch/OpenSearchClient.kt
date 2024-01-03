@@ -3,8 +3,8 @@ package no.nav.db.openSearch
 import com.jillesvangurp.ktsearch.*
 import io.ktor.util.logging.*
 import kotlinx.serialization.json.JsonObject
+import no.nav.db.openSearch.documents.IndexMappings
 import no.nav.db.openSearch.documents.content.OpenSearchContentDocument
-import no.nav.db.openSearch.documents.content.contentIndexMappings
 
 
 private val logger = KtorSimpleLogger("OpenSearchClient")
@@ -16,7 +16,7 @@ class OpenSearchClient(searchClient: SearchClient) {
         return this.client.engineInfo()
     }
 
-    suspend fun createIndexIfNotExists(index: String): Boolean {
+    suspend fun createIndexIfNotExists(index: String, mappings: IndexMappings): Boolean {
         val existsResponse = this.client.exists(index)
         if (existsResponse) {
             logger.info("Index already exists: $index")
@@ -24,7 +24,7 @@ class OpenSearchClient(searchClient: SearchClient) {
         }
 
         val result = this.client.createIndex(index) {
-            mappings(dynamicEnabled = false, contentIndexMappings)
+            mappings(dynamicEnabled = false, mappings)
         }
 
         return result.acknowledged
