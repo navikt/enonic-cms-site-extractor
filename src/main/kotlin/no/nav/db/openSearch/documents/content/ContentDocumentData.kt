@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class ContentVersionReference(
-    val key: String?,
+    val key: String,
     val statusKey: String?,
     val status: String?,
     val timestamp: String?,

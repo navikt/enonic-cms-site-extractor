@@ -5,6 +5,14 @@ import kotlinx.serialization.Serializable
 
 
 @Serializable
+data class ContentRefData(
+    val key: String,
+    val name: String,
+    val displayName: String,
+    val timestamp: String,
+)
+
+@Serializable
 data class OpenSearchCategoryDocument(
     val xmlAsString: String,
 
@@ -13,5 +21,7 @@ data class OpenSearchCategoryDocument(
 
     val contentTypeKey: String?,
     val superKey: String?,
+
     val categories: List<CategoryRefData>?,
+    val contents: List<ContentRefData>?
 )

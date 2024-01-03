@@ -23,7 +23,7 @@ class OpenSearchClientBuilder(
         this.credentials = credentials
     }
 
-    fun build(): OpenSearchClient {
+    suspend fun build(): OpenSearchClient {
         val searchClient = SearchClient(
             KtorRestClient(
                 host = hostname,
@@ -34,6 +34,6 @@ class OpenSearchClientBuilder(
             )
         )
 
-        return OpenSearchClient(searchClient)
+        return OpenSearchClient(searchClient, "cmssbs").initIndices()
     }
 }

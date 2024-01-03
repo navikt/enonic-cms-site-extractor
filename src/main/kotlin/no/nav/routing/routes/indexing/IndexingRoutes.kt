@@ -60,7 +60,7 @@ fun Route.indexingRoutes() {
 
     get<Build.Category> {
         val cmsClient = getCmsClientFromCallContext(call)
-        val document = OpenSearchCategoryDocumentBuilder(cmsClient).buildDocument(it.categoryKey)
+        val document = OpenSearchCategoryDocumentBuilder(cmsClient).build(it.categoryKey)
 
         call.respond(document ?: "oh noes")
     }
@@ -74,7 +74,7 @@ fun Route.indexingRoutes() {
             return@get
         }
 
-        val response = getOpenSearchClientFromCallContext(call).indexContentDocument(it.index, document, document.versionKey)
+        val response = getOpenSearchClientFromCallContext(call).indexContentDocument(document)
 
         call.respond(response)
     }
@@ -88,21 +88,21 @@ fun Route.indexingRoutes() {
             return@get
         }
 
-        val response = getOpenSearchClientFromCallContext(call).indexContentDocument(it.index, document, document.versionKey)
+        val response = getOpenSearchClientFromCallContext(call).indexContentDocument(document)
 
         call.respond(response)
     }
 
     get<IndexDocument.Category> {
         val cmsClient = getCmsClientFromCallContext(call)
-        val document = OpenSearchCategoryDocumentBuilder(cmsClient).buildDocument(it.categoryKey)
+        val document = OpenSearchCategoryDocumentBuilder(cmsClient).build(it.categoryKey)
 
         if (document == null) {
             call.respondText("Failed to build document!")
             return@get
         }
 
-        val response = getOpenSearchClientFromCallContext(call).indexCategoryDocument(it.index, document, document.key)
+        val response = getOpenSearchClientFromCallContext(call).indexCategoryDocument(document)
 
         call.respond(response)
     }

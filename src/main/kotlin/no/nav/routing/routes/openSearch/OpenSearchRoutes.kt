@@ -9,8 +9,6 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.db.openSearch.documents.category.categoryIndexMappings
-import no.nav.db.openSearch.documents.content.contentIndexMappings
 import no.nav.routing.plugins.OpenSearchClientPlugin
 import no.nav.routing.plugins.getOpenSearchClientFromCallContext
 
@@ -20,9 +18,6 @@ private class Info()
 
 @Resource("index")
 private class Index {
-    @Resource("create")
-    class Create(val parent: Index = Index())
-
     @Resource("delete/{index}")
     class Delete(val parent: Index = Index(), val index: String)
 
@@ -44,15 +39,6 @@ fun Route.openSearchRoutes() {
     get<Info> {
         val info = getOpenSearchClientFromCallContext(call).info()
         call.respond(info)
-    }
-
-    get<Index.Create> {
-        val contentResult =
-            getOpenSearchClientFromCallContext(call).createIndexIfNotExists("content", contentIndexMappings)
-        val categoriesResult =
-            getOpenSearchClientFromCallContext(call).createIndexIfNotExists("categories", categoryIndexMappings)
-
-        call.respondText("Created: $contentResult - $categoriesResult")
     }
 
     get<Index.Delete> { params ->

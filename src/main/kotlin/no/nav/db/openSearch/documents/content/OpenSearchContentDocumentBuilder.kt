@@ -5,12 +5,10 @@ import no.nav.db.openSearch.documents._partials.cmsUser.CmsUserData
 import no.nav.cms.client.CmsClient
 import no.nav.cms.renderer.ContentRenderer
 import no.nav.cms.utils.getContentElement
+import no.nav.utils.parseDateTime
 import no.nav.utils.xmlToString
 import org.jdom.Document
 import org.jdom.Element
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 
 
 class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
@@ -122,19 +120,5 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
             displayName = element.getChildText("display-name"),
             email = element.getChildText("email")
         )
-    }
-
-    private fun parseDateTime(datetime: String?): String? {
-        if (datetime == null) {
-            return null
-        }
-
-        return try {
-            LocalDateTime
-                .parse(datetime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm[:ss][.S][S][S]"))
-                .toString()
-        } catch (e: DateTimeParseException) {
-            return null
-        }
     }
 }
