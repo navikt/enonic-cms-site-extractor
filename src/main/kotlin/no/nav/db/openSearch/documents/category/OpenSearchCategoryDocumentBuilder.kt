@@ -2,6 +2,7 @@ package no.nav.db.openSearch.documents.category
 
 import CategoryRefData
 import no.nav.cms.client.CmsClient
+import no.nav.utils.parseDateTime
 import no.nav.utils.xmlToString
 import org.jdom.Document
 import org.jdom.Element
@@ -49,7 +50,7 @@ class OpenSearchCategoryDocumentBuilder(private val cmsClient: CmsClient) {
                     key = it.getAttributeValue("key"),
                     name = it.getChildText("name"),
                     displayName = it.getChildText("display-name"),
-                    timestamp = it.getAttributeValue("timestamp"),
+                    timestamp = parseDateTime(it.getAttributeValue("timestamp")),
                 )
             }
     }

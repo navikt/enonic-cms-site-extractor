@@ -15,8 +15,9 @@ class CmsContentExtractor(cmsClient: CmsClient, openSearchClient: OpenSearchClie
 
     suspend fun extractCategoryToOpenSearch(
         categoryKey: Int,
+        withChildren: Boolean? = false,
         withContent: Boolean? = false,
-        withChildren: Boolean? = false
+        withVersions: Boolean? = false
     ): String {
         val categoryDocument = OpenSearchCategoryDocumentBuilder(cmsClient).build(categoryKey)
             ?: return "No category found with key $categoryKey"
@@ -25,14 +26,14 @@ class CmsContentExtractor(cmsClient: CmsClient, openSearchClient: OpenSearchClie
 
         if (withContent == true) {
             categoryDocument.contents?.forEach {
-                val resultMsg = extractContentToOpenSearch(it.key.toInt())
+                val resultMsg = extractContentToOpenSearch(it.key.toInt(), withVersions)
                 logger.info(resultMsg)
             }
         }
 
         if (withChildren == true) {
             categoryDocument.categories?.forEach {
-                val resultMsg = extractCategoryToOpenSearch(it.key.toInt(), withContent, withChildren)
+                val resultMsg = extractCategoryToOpenSearch(it.key.toInt(), withChildren, withContent, withVersions)
                 logger.info(resultMsg)
             }
         }

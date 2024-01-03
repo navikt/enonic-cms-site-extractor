@@ -9,7 +9,7 @@ data class ContentRefData(
     val key: String,
     val name: String,
     val displayName: String,
-    val timestamp: String,
+    val timestamp: String?,
 )
 
 @Serializable

@@ -7,6 +7,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.db.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
 import no.nav.db.openSearch.documents.content.OpenSearchContentDocumentBuilder
+import no.nav.extractor.CmsContentExtractor
 import no.nav.routing.plugins.CmsClientPlugin
 import no.nav.routing.plugins.OpenSearchClientPlugin
 import no.nav.routing.plugins.getCmsClientFromCallContext
@@ -27,14 +28,20 @@ private class Build {
 
 @Resource("index-document")
 private class IndexDocument {
-    @Resource("content/{index}/{contentKey}")
-    class Content(val parent: IndexDocument = IndexDocument(), val index: String, val contentKey: Int)
+    @Resource("content/{contentKey}")
+    class Content(val parent: IndexDocument = IndexDocument(), val contentKey: Int)
 
-    @Resource("version/{index}/{versionKey}")
-    class Version(val parent: IndexDocument = IndexDocument(), val index: String, val versionKey: Int)
+    @Resource("version/versionKey}")
+    class Version(val parent: IndexDocument = IndexDocument(), val versionKey: Int)
 
-    @Resource("category/{index}/{categoryKey}")
-    class Category(val parent: IndexDocument = IndexDocument(), val index: String, val categoryKey: Int)
+    @Resource("category/{categoryKey}")
+    class Category(
+        val parent: IndexDocument = IndexDocument(),
+        val categoryKey: Int,
+        val withChildren: Boolean? = false,
+        val withContent: Boolean? = false,
+        val withVersions: Boolean? = false
+    )
 }
 
 fun Route.indexingRoutes() {
@@ -95,14 +102,14 @@ fun Route.indexingRoutes() {
 
     get<IndexDocument.Category> {
         val cmsClient = getCmsClientFromCallContext(call)
-        val document = OpenSearchCategoryDocumentBuilder(cmsClient).build(it.categoryKey)
+        val openSearchClient = getOpenSearchClientFromCallContext(call)
 
-        if (document == null) {
-            call.respondText("Failed to build document!")
-            return@get
-        }
-
-        val response = getOpenSearchClientFromCallContext(call).indexCategoryDocument(document)
+        val response = CmsContentExtractor(cmsClient, openSearchClient).extractCategoryToOpenSearch(
+            it.categoryKey,
+            it.withChildren,
+            it.withContent,
+            it.withVersions
+        )
 
         call.respond(response)
     }

@@ -18,49 +18,21 @@ data class ContentRenderParams(
     val pagetemplatekey: String
 )
 
-class ContentRenderParamsBuilder(contentElement: Element, cmsClient: CmsClient) {
+class ContentRenderParamsBuilder(
+    private val contentElement: Element,
     private val cmsClient: CmsClient
-    private val contentElement: Element
-
-    init {
-        this.cmsClient = cmsClient
-        this.contentElement = contentElement
-    }
+) {
 
     suspend fun build(): ContentRenderParams? {
         try {
             val contentKey = getContentKey()
-            logger.info("Content key: $contentKey")
-
             val versionKey = getVersionKey()
-            logger.info("Version key: $versionKey")
-
             val pageKey = getPageKey()
-            logger.info("Page key: $pageKey")
-
             val unitKey = getUnitKey()
-            logger.info("Unit key: $unitKey")
 
-            val siteKey = getSiteKey()
-            logger.info("Site key: $siteKey")
-
-            if (siteKey == null) {
-                return null
-            }
-
-            val menuItemKey = getMenuItemKey()
-            logger.info("Menuitem key: $menuItemKey")
-
-            if (menuItemKey == null) {
-                return null
-            }
-
-            val pageTemplateKey = getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
-            logger.info("Pagetemplate key: $pageTemplateKey")
-
-            if (pageTemplateKey == null) {
-                return null
-            }
+            val siteKey = getSiteKey() ?: return null
+            val menuItemKey = getMenuItemKey() ?: return null
+            val pageTemplateKey = getPageTemplateKey(contentKey, versionKey, pageKey, unitKey) ?: return null
 
             return ContentRenderParams(
                 contentkey = contentKey,
