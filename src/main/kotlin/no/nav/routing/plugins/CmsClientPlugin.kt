@@ -10,7 +10,7 @@ import no.nav.cms.client.CmsClient
 
 private val cmsClientKey = AttributeKey<CmsClient>("cmsClientKey")
 
-fun getCmsClientFromCallContext(call: ApplicationCall): CmsClient = call.attributes.get(cmsClientKey)
+fun getCmsClientFromCallContext(call: ApplicationCall): CmsClient = call.attributes[cmsClientKey]
 
 val CmsClientPlugin = createRouteScopedPlugin("CmsClient") {
     val url = environment?.config?.propertyOrNull("cms.url")?.getString()

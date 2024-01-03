@@ -92,16 +92,19 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         val params = GetCategoriesParams()
         params.categoryKey = categoryKey
         params.includeTopCategory = true
-        params.levels = depth ?: 0
+        params.levels = depth ?: 1
 
         return rpcClient.getCategories(params)
     }
 
-    fun getContentByCategory(categoryKey: Int): Document {
+    fun getContentByCategory(categoryKey: Int, depth: Int? = 1, index: Int? = 0, count: Int? = 100): Document {
         val params = GetContentByCategoryParams()
         params.categoryKeys = intArrayOf(categoryKey)
         params.includeOfflineContent = true
         params.includeData = false
+        params.childrenLevel = depth ?: 1
+        params.index = index ?: 0
+        params.count = count ?: 100
 
         return rpcClient.getContentByCategory(params)
     }

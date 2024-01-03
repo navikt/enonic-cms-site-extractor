@@ -34,13 +34,20 @@ private class MenuItem(val key: Int)
 private class MenuData(val key: Int)
 
 @Resource("categories/{key}")
-private class Categories(val key: Int, val depth: Int?)
+private class Categories(val key: Int, val depth: Int? = 1)
 
 @Resource("contentByCategory/{key}")
-private class ContentByCategory(val key: Int)
+private class ContentByCategory(val key: Int, val depth: Int? = null, val index: Int? = null, val count: Int? = null)
 
 private suspend fun documentXmlResponse(call: ApplicationCall, document: Document) {
-    call.respondText(documentToString(document) ?: "Failed to parse XML document", ContentType.Text.Xml)
+    val documentString = documentToString(document);
+
+    if (documentString == null) {
+        call.response.status(HttpStatusCode.InternalServerError)
+        return call.respondText("Failed to parse XML document")
+    }
+
+    call.respondText(documentString, ContentType.Text.Xml)
 }
 
 fun Route.cmsClientRoutes() {
@@ -110,7 +117,7 @@ fun Route.cmsClientRoutes() {
         documentXmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getContentByCategory(params.key)
+                .getContentByCategory(params.key, params.depth, params.index, params.count)
         )
     }
 }

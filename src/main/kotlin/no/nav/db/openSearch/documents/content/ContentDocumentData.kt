@@ -1,4 +1,4 @@
-package no.nav.db.openSearch.documents
+package no.nav.db.openSearch.documents.content
 
 import kotlinx.serialization.Serializable
 

@@ -8,12 +8,7 @@ import org.jdom.Document
 
 private val logger = KtorSimpleLogger("ContentRenderer")
 
-class ContentRenderer(cmsClient: CmsClient) {
-    private val cmsClient: CmsClient
-
-    init {
-        this.cmsClient = cmsClient
-    }
+class ContentRenderer(private val cmsClient: CmsClient) {
 
     suspend fun renderDocument(document: Document): String? {
         val contentElement = getContentElement(document) ?: return null

@@ -1,4 +1,4 @@
-package no.nav.db.openSearch.documents
+package no.nav.db.openSearch.documents.content
 
 import no.nav.cms.client.CmsClient
 import no.nav.cms.renderer.ContentRenderer
@@ -11,12 +11,7 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 
 
-class OpenSearchContentDocumentBuilder(cmsClient: CmsClient) {
-    private val cmsClient: CmsClient
-
-    init {
-        this.cmsClient = cmsClient
-    }
+class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
 
     suspend fun buildDocumentFromContent(contentKey: Int): OpenSearchContentDocument? {
         val document = cmsClient.getContent(contentKey)
@@ -30,11 +25,8 @@ class OpenSearchContentDocumentBuilder(cmsClient: CmsClient) {
 
     private suspend fun transform(cmsDocument: Document): OpenSearchContentDocument? {
         val contentElement = getContentElement(cmsDocument) ?: return null
-
         val documentXml = documentToString(contentElement.document) ?: return null
-
         val html = ContentRenderer(this.cmsClient).renderDocument(cmsDocument)
-
 
         return OpenSearchContentDocument(
             path = "",

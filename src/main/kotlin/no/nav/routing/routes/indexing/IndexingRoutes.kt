@@ -5,7 +5,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.db.openSearch.documents.OpenSearchContentDocumentBuilder
+import no.nav.db.openSearch.documents.content.OpenSearchContentDocumentBuilder
 import no.nav.routing.plugins.CmsClientPlugin
 import no.nav.routing.plugins.OpenSearchClientPlugin
 import no.nav.routing.plugins.getCmsClientFromCallContext

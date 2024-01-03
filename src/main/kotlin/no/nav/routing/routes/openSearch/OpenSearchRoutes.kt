@@ -2,10 +2,8 @@ package no.nav.routing.routes.openSearch
 
 import com.jillesvangurp.ktsearch.RestException
 import io.ktor.http.*
-import io.ktor.http.cio.*
 import io.ktor.resources.*
 import io.ktor.serialization.kotlinx.json.*
-import io.ktor.serialization.kotlinx.xml.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.resources.*
@@ -16,7 +14,7 @@ import no.nav.routing.plugins.getOpenSearchClientFromCallContext
 
 
 @Resource("info")
-private class Info(val input: String?)
+private class Info()
 
 @Resource("index")
 private class Index {
@@ -47,7 +45,7 @@ fun Route.openSearchRoutes() {
     }
 
     get<Index.Create> { params ->
-        val result = getOpenSearchClientFromCallContext(call).createIndices(params.index)
+        val result = getOpenSearchClientFromCallContext(call).createIndexIfNotExists(params.index)
         call.respondText("Created: $result")
     }
 
