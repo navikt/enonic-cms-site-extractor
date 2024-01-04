@@ -1,9 +1,9 @@
-package no.nav.cms.renderer
+package no.nav.cms.client
 
 import io.ktor.util.logging.*
-import no.nav.cms.client.CmsClient
 import no.nav.utils.xmlToString
 import org.jdom.Element
+
 
 private const val CT_KEY_PAGE_KEY_DELTA = 999
 

@@ -13,7 +13,7 @@ import com.enonic.cms.api.client.model.GetMenuItemParams
 import com.enonic.cms.api.client.model.GetMenuParams
 import io.ktor.server.auth.*
 import io.ktor.util.logging.*
-import no.nav.cms.renderer.ContentRenderParams
+import no.nav.cms.utils.getContentElement
 import org.jdom.Document
 import org.jdom.Element
 
@@ -23,16 +23,10 @@ private const val RPC_PATH = "/rpc/bin"
 private val logger = KtorSimpleLogger("CmsClient")
 
 class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
-    private val cmsOrigin: String
-    private val rpcClient: RemoteClient
-    private val restClient: CmsRestClient
+    private val rpcClient: RemoteClient = ClientFactory.getRemoteClient(cmsOrigin.plus(RPC_PATH))
+    private val restClient: CmsRestClient = CmsRestClient(cmsOrigin, credential)
 
     init {
-        this.cmsOrigin = cmsOrigin
-
-        this.restClient = CmsRestClient(cmsOrigin, credential)
-
-        this.rpcClient = ClientFactory.getRemoteClient(cmsOrigin.plus(RPC_PATH))
         rpcLogin(credential)
     }
 
@@ -135,7 +129,18 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         return restClient.getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
     }
 
-    suspend fun renderContent(params: ContentRenderParams): String? {
+    suspend fun renderDocument(document: Document): String? {
+        val contentElement = getContentElement(document) ?: return null
+        val params = ContentRenderParamsBuilder(contentElement, this).build() ?: return null
+
         return restClient.renderContent(params)
+    }
+
+    suspend fun renderVersion(versionKey: Int): String? {
+        return renderDocument(getContentVersion(versionKey))
+    }
+
+    suspend fun renderContent(contentKey: Int): String? {
+        return renderDocument(getContent(contentKey))
     }
 }

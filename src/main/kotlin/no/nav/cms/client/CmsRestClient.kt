@@ -10,7 +10,6 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.util.logging.*
-import no.nav.cms.renderer.ContentRenderParams
 
 
 private const val LOGIN_PATH = "/admin/login"
@@ -20,32 +19,18 @@ private const val ADMIN_PREVIEW_PATH = "/admin/preview"
 
 private val logger = KtorSimpleLogger("CmsRestClient")
 
-class CmsRestClient(cmsOrigin: String, credential: UserPasswordCredential) {
-    private val origin: String
-    private val loginUrl: String
-    private val errorUrl: String
-    private val adminUrl: String
+class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCredential) {
+    private val origin: String = cmsOrigin
+    private val loginUrl: String = cmsOrigin.plus(LOGIN_PATH)
+    private val errorUrl: String = cmsOrigin.plus(ERROR_PATH)
+    private val adminUrl: String = cmsOrigin.plus(ADMIN_PAGE_PATH)
 
-    private val credential: UserPasswordCredential
-    private val httpClient: HttpClient
-
-    init {
-        this.origin = cmsOrigin
-        this.loginUrl = cmsOrigin.plus(LOGIN_PATH)
-        this.errorUrl = cmsOrigin.plus(ERROR_PATH)
-        this.adminUrl = cmsOrigin.plus(ADMIN_PAGE_PATH)
-
-        this.credential = credential
-
-        this.httpClient = HttpClient(CIO) {
-            install(Logging) {
-                level = LogLevel.INFO
-            }
-
-            install(HttpCookies)
-
-            followRedirects = false
+    private val httpClient: HttpClient = HttpClient(CIO) {
+        install(Logging) {
+            level = LogLevel.INFO
         }
+        install(HttpCookies)
+        followRedirects = false
     }
 
     private fun isLoginRedirect(response: HttpResponse): Boolean {

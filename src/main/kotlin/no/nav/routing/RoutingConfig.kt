@@ -6,7 +6,6 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.cms.renderer.ContentRenderer
 import no.nav.routing.plugins.CmsClientPlugin
 import no.nav.routing.plugins.getCmsClientFromCallContext
 import no.nav.routing.routes.openSearch.openSearchRoutes
@@ -39,8 +38,7 @@ fun Application.configureRouting() {
                 }
 
                 val client = getCmsClientFromCallContext(call)
-
-                val result = ContentRenderer(client).renderContent(contentKey)
+                val result = client.renderContent(contentKey)
 
                 call.respondText(result ?: "Oh noes")
             }
@@ -55,8 +53,7 @@ fun Application.configureRouting() {
                 }
 
                 val client = getCmsClientFromCallContext(call)
-
-                val result = ContentRenderer(client).renderVersion(versionKey)
+                val result = client.renderVersion(versionKey)
 
                 call.respondText(result ?: "Oh noes")
             }

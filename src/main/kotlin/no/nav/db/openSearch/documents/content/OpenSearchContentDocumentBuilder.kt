@@ -3,7 +3,6 @@ package no.nav.db.openSearch.documents.content
 import CategoryRefData
 import no.nav.db.openSearch.documents._partials.cmsUser.CmsUserData
 import no.nav.cms.client.CmsClient
-import no.nav.cms.renderer.ContentRenderer
 import no.nav.cms.utils.getContentElement
 import no.nav.utils.parseDateTime
 import no.nav.utils.xmlToString
@@ -26,7 +25,7 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
     private suspend fun transform(cmsDocument: Document): OpenSearchContentDocument? {
         val contentElement = getContentElement(cmsDocument) ?: return null
         val documentXml = xmlToString(contentElement.document) ?: return null
-        val html = ContentRenderer(this.cmsClient).renderDocument(cmsDocument)
+        val html = this.cmsClient.renderDocument(cmsDocument)
 
         return OpenSearchContentDocument(
             path = "",
