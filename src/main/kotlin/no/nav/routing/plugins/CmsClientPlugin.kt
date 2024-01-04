@@ -19,15 +19,15 @@ val CmsClientPlugin = createRouteScopedPlugin("CmsClient") {
     val user = getConfigVar("cms.user", environment)
     val password = getConfigVar("cms.password", environment)
 
-    onCall { call ->
+    on(AuthenticationChecked) { call ->
+        if (call.principal<UserIdPrincipal>()?.name == null) {
+            return@on
+        }
+
         if (url == null || user == null || password == null) {
             call.response.status(HttpStatusCode.InternalServerError)
             call.respondText("CMS service parameters not found")
-            return@onCall
-        }
-
-        if (call.principal<UserIdPrincipal>() == null) {
-            return@onCall
+            return@on
         }
 
         val client = try {
@@ -39,7 +39,7 @@ val CmsClientPlugin = createRouteScopedPlugin("CmsClient") {
         if (client == null) {
             call.response.status(HttpStatusCode.Unauthorized)
             call.respondText("Failed to initialize CMS client for $user to $url")
-            return@onCall
+            return@on
         }
 
         call.attributes.put(cmsClientKey, client)

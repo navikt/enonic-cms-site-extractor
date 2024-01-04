@@ -21,15 +21,15 @@ val OpenSearchClientPlugin = createRouteScopedPlugin("OpenSearchClient") {
     val user = getConfigVar("opensearch.user", environment)
     val password = getConfigVar("opensearch.password", environment)
 
-    onCall { call ->
+    on(AuthenticationChecked) { call ->
+        if (call.principal<UserIdPrincipal>()?.name == null) {
+            return@on
+        }
+
         if (host == null || port == null || user == null || password == null) {
             call.response.status(HttpStatusCode.InternalServerError)
             call.respondText("OpenSearch service parameters not found")
-            return@onCall
-        }
-
-        if (call.principal<UserIdPrincipal>() == null) {
-            return@onCall
+            return@on
         }
 
         val client = OpenSearchClientBuilder(
