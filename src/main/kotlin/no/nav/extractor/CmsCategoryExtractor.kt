@@ -4,16 +4,23 @@ import no.nav.cms.client.CmsClient
 import no.nav.db.openSearch.OpenSearchClient
 
 
-class CmsContentExtractor(
+class CmsCategoryExtractor(
     cmsClient: CmsClient,
     openSearchClient: OpenSearchClient,
 ) : CmsExtractor(cmsClient, openSearchClient) {
     suspend fun run(
         categoryKey: Int,
+        withChildren: Boolean?,
+        withContent: Boolean?,
         withVersions: Boolean?
     ) {
         if (start()) {
-            extractContent(categoryKey, withVersions ?: false)
+            extractCategory(
+                categoryKey,
+                withChildren ?: false,
+                withContent ?: false,
+                withVersions ?: false
+            )
 
             stop()
         }

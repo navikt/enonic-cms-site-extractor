@@ -7,7 +7,9 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.db.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
 import no.nav.db.openSearch.documents.content.OpenSearchContentDocumentBuilder
+import no.nav.extractor.CmsCategoryExtractor
 import no.nav.extractor.CmsContentExtractor
+import no.nav.extractor.CmsVersionExtractor
 import no.nav.routing.plugins.CmsClientPlugin
 import no.nav.routing.plugins.OpenSearchClientPlugin
 import no.nav.routing.plugins.getCmsClientFromCallContext
@@ -84,7 +86,7 @@ fun Route.indexingRoutes() {
         val openSearchClient = getOpenSearchClientFromCallContext(call)
 
         val response = CmsContentExtractor(cmsClient, openSearchClient)
-            .runExtractContent(it.contentKey, it.withVersions)
+            .run(it.contentKey, it.withVersions)
 
         call.respond(response)
     }
@@ -93,8 +95,8 @@ fun Route.indexingRoutes() {
         val cmsClient = getCmsClientFromCallContext(call)
         val openSearchClient = getOpenSearchClientFromCallContext(call)
 
-        val response = CmsContentExtractor(cmsClient, openSearchClient)
-            .runExtractVersion(it.versionKey)
+        val response = CmsVersionExtractor(cmsClient, openSearchClient)
+            .run(it.versionKey)
 
         call.respond(response)
     }
@@ -103,8 +105,8 @@ fun Route.indexingRoutes() {
         val cmsClient = getCmsClientFromCallContext(call)
         val openSearchClient = getOpenSearchClientFromCallContext(call)
 
-        val response = CmsContentExtractor(cmsClient, openSearchClient)
-            .runExtractCategory(
+        val response = CmsCategoryExtractor(cmsClient, openSearchClient)
+            .run(
                 it.categoryKey,
                 it.withChildren,
                 it.withContent,

@@ -2,38 +2,36 @@ package no.nav.db.openSearch
 
 import com.jillesvangurp.ktsearch.KtorRestClient
 import com.jillesvangurp.ktsearch.SearchClient
-import io.ktor.server.auth.*
+import io.ktor.server.application.*
+import io.ktor.util.logging.*
+import no.nav.utils.getConfigVar
 
 
-class OpenSearchClientBuilder(
-    hostname: String,
-    port: Int,
-    credentials: UserPasswordCredential,
-    https: Boolean = true
-) {
-    private val hostname: String
-    private val port: Int
-    private val https: Boolean
-    private val credentials: UserPasswordCredential
+private val logger = KtorSimpleLogger("OpenSearchClientBuilder")
 
-    init {
-        this.hostname = hostname
-        this.port = port
-        this.https = https
-        this.credentials = credentials
-    }
+class OpenSearchClientBuilder(environment: ApplicationEnvironment?) {
+    private val host = getConfigVar("opensearch.host", environment)
+    private val port = getConfigVar("opensearch.port", environment)?.toInt()
+    private val user = getConfigVar("opensearch.user", environment)
+    private val password = getConfigVar("opensearch.password", environment)
+    private val indexPrefix = getConfigVar("opensearch.indexPrefix", environment)
 
-    suspend fun build(): OpenSearchClient {
+    suspend fun build(): OpenSearchClient? {
+        if (host == null || port == null || user == null || password == null || indexPrefix == null) {
+            logger.error("OpenSearch service parameters not found")
+            return null
+        }
+
         val searchClient = SearchClient(
             KtorRestClient(
-                host = hostname,
+                host = host,
                 port = port,
-                https = https,
-                user = credentials.name,
-                password = credentials.password
+                user = user,
+                password = password,
+                https = true,
             )
         )
 
-        return OpenSearchClient(searchClient, "cmssbs").initIndices()
+        return OpenSearchClient(searchClient, indexPrefix).initIndices()
     }
 }
