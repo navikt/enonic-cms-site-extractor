@@ -22,21 +22,31 @@ private const val RPC_PATH = "/rpc/bin"
 
 private val logger = KtorSimpleLogger("CmsClient")
 
-class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
+class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredential) {
     private val rpcClient: RemoteClient = ClientFactory.getRemoteClient(cmsOrigin.plus(RPC_PATH))
     private val restClient: CmsRestClient = CmsRestClient(cmsOrigin, credential)
 
     init {
-        rpcLogin(credential)
+        rpcLogin()
     }
 
-    private fun rpcLogin(credential: UserPasswordCredential) {
-        return try {
+    private fun rpcLogin() {
+        try {
             rpcClient.login(credential.name, credential.password)
             logger.info("Logged in as ${rpcClient.userName}")
         } catch (e: ClientException) {
             logger.error("Login failed for user ${credential.name} - ${e.message}")
             throw e
+        }
+    }
+
+    private fun <T> runWithRpcErrorHandling(func: () -> T): T {
+        try {
+            return func()
+        } catch (e: ClientException) {
+            logger.error("Error from RPC client: ${e.message} - attempting to refresh login session")
+            rpcLogin()
+            return func()
         }
     }
 
@@ -48,7 +58,7 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         params.includeOfflineContent = true
         params.includeUserRights = false
 
-        return rpcClient.getContent(params)
+        return runWithRpcErrorHandling { rpcClient.getContent(params) }
     }
 
     fun getContent(contentKey: Int): Document {
@@ -60,7 +70,7 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         params.contentVersionKeys = versionKeys
         params.contentRequiredToBeOnline = false
 
-        return rpcClient.getContentVersions(params)
+        return runWithRpcErrorHandling { rpcClient.getContentVersions(params) }
     }
 
     fun getContentVersion(versionKey: Int): Document {
@@ -72,7 +82,7 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         params.menuKey = menuKey
         params.includeHidden = true
 
-        return rpcClient.getMenu(params)
+        return runWithRpcErrorHandling { rpcClient.getMenu(params) }
     }
 
     fun getMenuItem(menuItemKey: Int): Document {
@@ -80,7 +90,7 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         params.menuItemKey = menuItemKey
         params.details = true
 
-        return rpcClient.getMenuItem(params)
+        return runWithRpcErrorHandling { rpcClient.getMenuItem(params) }
     }
 
     fun getCategory(categoryKey: Int, depth: Int? = 1): Element? {
@@ -89,7 +99,7 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         params.includeTopCategory = true
         params.levels = depth ?: 1
 
-        return rpcClient.getCategories(params)
+        return runWithRpcErrorHandling { rpcClient.getCategories(params) }
             ?.rootElement
             ?.getChild("category")
     }
@@ -103,7 +113,7 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         params.index = index ?: 0
         params.count = count ?: 100
 
-        return rpcClient.getContentByCategory(params)
+        return runWithRpcErrorHandling { rpcClient.getContentByCategory(params) }
     }
 
     fun getContentByQuery(query: String): Document {
@@ -115,14 +125,14 @@ class CmsClient(cmsOrigin: String, credential: UserPasswordCredential) {
         params.includeUserRights = false
         params.query = query
 
-        return rpcClient.getContentByQuery(params)
+        return runWithRpcErrorHandling { rpcClient.getContentByQuery(params) }
     }
 
     fun getMenuData(menuKey: Int): Document {
         val params = GetMenuDataParams()
         params.menuKey = menuKey
 
-        return rpcClient.getMenuData(params)
+        return runWithRpcErrorHandling { rpcClient.getMenuData(params) }
     }
 
     suspend fun getPageTemplateKey(contentKey: String, versionKey: String, pageKey: String, unitKey: String): String? {

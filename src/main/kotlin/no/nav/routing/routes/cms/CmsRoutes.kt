@@ -13,6 +13,7 @@ import no.nav.routing.plugins.getCmsClientFromCallContext
 import no.nav.utils.xmlToString
 import org.jdom.Parent
 
+
 @Resource("content/{key}")
 private class Content(val key: Int)
 
@@ -31,8 +32,8 @@ private class MenuItem(val key: Int)
 @Resource("menudata/{key}")
 private class MenuData(val key: Int)
 
-@Resource("categories/{key}")
-private class Categories(val key: Int, val depth: Int? = 1)
+@Resource("category/{key}")
+private class Category(val key: Int, val depth: Int? = 1)
 
 @Resource("contentByCategory/{key}")
 private class ContentByCategory(val key: Int, val depth: Int? = null, val index: Int? = null, val count: Int? = null)
@@ -55,7 +56,6 @@ private suspend fun <T : Parent> xmlResponse(call: ApplicationCall, xml: T?) {
 
 fun Route.cmsClientRoutes() {
     install(CmsClientPlugin)
-
     install(ContentNegotiation) {
         xml()
     }
@@ -108,7 +108,7 @@ fun Route.cmsClientRoutes() {
         )
     }
 
-    get<Categories> { params ->
+    get<Category> { params ->
         xmlResponse(
             call,
             getCmsClientFromCallContext(call)

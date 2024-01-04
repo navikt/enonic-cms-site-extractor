@@ -68,11 +68,11 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
     private suspend fun requestWithLogin(
         url: String,
         method: HttpMethod = HttpMethod.Get,
-        block: HttpRequestBuilder.() -> Unit
+        reqBuilder: HttpRequestBuilder.() -> Unit
     ): HttpResponse {
         val response = httpClient.request(url) {
             this.method = method
-            block()
+            reqBuilder()
         }
 
         if (!isLoginRedirect(response)) {
@@ -86,7 +86,7 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
         return if (isLoginSuccessful(loginResponse)) {
             logger.info("Login was successful!")
             requestWithLogin(url, method) {
-                block()
+                reqBuilder()
             }
         } else {
             logger.error("Login failed!")
