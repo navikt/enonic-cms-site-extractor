@@ -12,6 +12,7 @@ private val logger = KtorSimpleLogger("CmsContentExtractor")
 sealed class CmsExtractor(
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
+    protected val key: Int
 ) {
     val errors = LinkedHashMap<Int, String>()
     val results = LinkedHashMap<Int, String>()

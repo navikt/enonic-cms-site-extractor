@@ -7,13 +7,10 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.db.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
 import no.nav.db.openSearch.documents.content.OpenSearchContentDocumentBuilder
-import no.nav.extractor.CmsCategoryExtractor
-import no.nav.extractor.CmsContentExtractor
-import no.nav.extractor.CmsVersionExtractor
+import no.nav.extractor.CmsExtractorFactory
 import no.nav.routing.plugins.CmsClientPlugin
 import no.nav.routing.plugins.OpenSearchClientPlugin
 import no.nav.routing.plugins.getCmsClientFromCallContext
-import no.nav.routing.plugins.getOpenSearchClientFromCallContext
 
 
 @Resource("build")
@@ -82,37 +79,30 @@ fun Route.indexingRoutes() {
     }
 
     get<IndexDocument.Content> {
-        val cmsClient = getCmsClientFromCallContext(call)
-        val openSearchClient = getOpenSearchClientFromCallContext(call)
+        val response = CmsExtractorFactory
+            .createOrRetrieveContentExtractor(it.contentKey, this@indexingRoutes.environment)
+            ?.run(it.withVersions)
 
-        val response = CmsContentExtractor(cmsClient, openSearchClient)
-            .run(it.contentKey, it.withVersions)
-
-        call.respond(response)
+        call.respond(response ?: "Oh noes")
     }
 
     get<IndexDocument.Version> {
-        val cmsClient = getCmsClientFromCallContext(call)
-        val openSearchClient = getOpenSearchClientFromCallContext(call)
+        val response = CmsExtractorFactory
+            .createOrRetrieveVersionExtractor(it.versionKey, this@indexingRoutes.environment)
+            ?.run()
 
-        val response = CmsVersionExtractor(cmsClient, openSearchClient)
-            .run(it.versionKey)
-
-        call.respond(response)
+        call.respond(response ?: "Oh noes")
     }
 
     get<IndexDocument.Category> {
-        val cmsClient = getCmsClientFromCallContext(call)
-        val openSearchClient = getOpenSearchClientFromCallContext(call)
-
-        val response = CmsCategoryExtractor(cmsClient, openSearchClient)
-            .run(
-                it.categoryKey,
+        val response = CmsExtractorFactory
+            .createOrRetrieveCategoryExtractor(it.categoryKey, this@indexingRoutes.environment)
+            ?.run(
                 it.withChildren,
                 it.withContent,
                 it.withVersions
             )
 
-        call.respond(response)
+        call.respond(response ?: "Oh noes")
     }
 }

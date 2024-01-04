@@ -7,13 +7,11 @@ import no.nav.db.openSearch.OpenSearchClient
 class CmsContentExtractor(
     cmsClient: CmsClient,
     openSearchClient: OpenSearchClient,
-) : CmsExtractor(cmsClient, openSearchClient) {
-    suspend fun run(
-        categoryKey: Int,
-        withVersions: Boolean?
-    ) {
+    key: Int
+) : CmsExtractor(cmsClient, openSearchClient, key) {
+    suspend fun run(withVersions: Boolean?) {
         if (start()) {
-            extractContent(categoryKey, withVersions ?: false)
+            extractContent(key, withVersions ?: false)
 
             stop()
         }

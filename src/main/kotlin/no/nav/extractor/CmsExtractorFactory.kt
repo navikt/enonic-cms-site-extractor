@@ -2,11 +2,16 @@ package no.nav.extractor
 
 import io.ktor.server.application.*
 import io.ktor.util.logging.*
+import no.nav.cms.client.CmsClient
 import no.nav.cms.client.CmsClientBuilder
+import no.nav.db.openSearch.OpenSearchClient
 import no.nav.db.openSearch.OpenSearchClientBuilder
 
 
 private val logger = KtorSimpleLogger("CmsExtractorFactory")
+
+private val extractorConstructorArgs =
+    arrayOf<Class<*>>(CmsClient::class.java, OpenSearchClient::class.java, Int::class.java)
 
 object CmsExtractorFactory {
     private val categoryExtractors = HashMap<Int, CmsCategoryExtractor>()
@@ -31,9 +36,9 @@ object CmsExtractorFactory {
             return null
         }
 
-        val extractor = (ExtractorType::class.java)
-            .getDeclaredConstructor()
-            .newInstance(cmsClient, openSearchClient)
+        val extractor = ExtractorType::class.java
+            .getConstructor(*extractorConstructorArgs)
+            .newInstance(cmsClient, openSearchClient, key)
 
         extractorMap[key] = extractor
 
