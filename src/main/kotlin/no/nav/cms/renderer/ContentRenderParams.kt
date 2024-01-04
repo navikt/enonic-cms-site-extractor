@@ -2,6 +2,7 @@ package no.nav.cms.renderer
 
 import io.ktor.util.logging.*
 import no.nav.cms.client.CmsClient
+import no.nav.utils.xmlToString
 import org.jdom.Element
 
 private const val CT_KEY_PAGE_KEY_DELTA = 999
@@ -26,13 +27,46 @@ class ContentRenderParamsBuilder(
     suspend fun build(): ContentRenderParams? {
         try {
             val contentKey = getContentKey()
-            val versionKey = getVersionKey()
-            val pageKey = getPageKey()
-            val unitKey = getUnitKey()
+            if (contentKey == null) {
+                logger.error("No contentKey found for provided element ${xmlToString(contentElement)}")
+                return null
+            }
 
-            val siteKey = getSiteKey() ?: return null
-            val menuItemKey = getMenuItemKey() ?: return null
-            val pageTemplateKey = getPageTemplateKey(contentKey, versionKey, pageKey, unitKey) ?: return null
+            val versionKey = getVersionKey()
+            if (versionKey == null) {
+                logger.error("No versionKey found for content $contentKey")
+                return null
+            }
+
+            val pageKey = getPageKey()
+            if (pageKey == null) {
+                logger.error("No pageKey found for content $contentKey (version: $versionKey)")
+                return null
+            }
+
+            val unitKey = getUnitKey()
+            if (unitKey == null) {
+                logger.error("No unitKey found for content $contentKey (version: $versionKey)")
+                return null
+            }
+
+            val siteKey = getSiteKey()
+            if (siteKey == null) {
+                logger.error("No siteKey found for content $contentKey (version: $versionKey)")
+                return null
+            }
+
+            val menuItemKey = getMenuItemKey()
+            if (menuItemKey == null) {
+                logger.error("No menuItemKey found for content $contentKey (version: $versionKey)")
+                return null
+            }
+
+            val pageTemplateKey = getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
+            if (pageTemplateKey == null) {
+                logger.error("No pageTemplateKey found for content $contentKey (version: $versionKey)")
+                return null
+            }
 
             return ContentRenderParams(
                 contentkey = contentKey,
@@ -49,8 +83,8 @@ class ContentRenderParamsBuilder(
         }
     }
 
-    private fun getContentKey(): String {
-        return this.contentElement.getAttribute("key").value
+    private fun getContentKey(): String? {
+        return this.contentElement.getAttribute("key")?.value
     }
 
     private fun getSiteKey(): String? {
@@ -70,26 +104,28 @@ class ContentRenderParamsBuilder(
             ?.value
     }
 
-    private fun getUnitKey(): String {
+    private fun getUnitKey(): String? {
         return this.contentElement
             .getAttribute("unitkey")
-            .value
+            ?.value
     }
 
-    private fun getVersionKey(): String {
+    private fun getVersionKey(): String? {
         return this.contentElement
             .getAttribute("versionkey")
-            .value
+            ?.value
     }
 
-    private fun getContentTypeKey(): String {
+    private fun getContentTypeKey(): String? {
         return this.contentElement
             .getAttribute("contenttypekey")
-            .value
+            ?.value
     }
 
-    private fun getPageKey(): String {
-        return (this.getContentTypeKey().toInt() + CT_KEY_PAGE_KEY_DELTA).toString()
+    private fun getPageKey(): String? {
+        val contentTypeKey = this.getContentTypeKey() ?: return null
+
+        return (contentTypeKey.toInt() + CT_KEY_PAGE_KEY_DELTA).toString()
     }
 
     private suspend fun getPageTemplateKey(

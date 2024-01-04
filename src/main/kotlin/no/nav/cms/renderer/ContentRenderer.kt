@@ -1,18 +1,14 @@
 package no.nav.cms.renderer
 
 import no.nav.cms.utils.getContentElement
-import io.ktor.util.logging.*
 import no.nav.cms.client.CmsClient
 import org.jdom.Document
 
-
-private val logger = KtorSimpleLogger("ContentRenderer")
 
 class ContentRenderer(private val cmsClient: CmsClient) {
 
     suspend fun renderDocument(document: Document): String? {
         val contentElement = getContentElement(document) ?: return null
-
         val params = ContentRenderParamsBuilder(contentElement, cmsClient).build() ?: return null
 
         return cmsClient.renderContent(params)
