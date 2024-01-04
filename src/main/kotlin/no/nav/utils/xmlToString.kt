@@ -30,15 +30,12 @@ private fun elementToString(element: Element?): String? {
 }
 
 fun <T : Parent> xmlToString(xml: T): String? {
-    if (xml is Document) {
-        return documentToString(xml)
+    return when (xml) {
+        is Document -> documentToString(xml)
+        is Element -> elementToString(xml)
+        else -> {
+            logger.error("Unsupported XML type: ${xml::class}")
+            return null
+        }
     }
-
-    if (xml is Element) {
-        return elementToString(xml)
-    }
-
-    logger.error("Unsupported XML type: ${xml::class}")
-
-    return null
 }

@@ -17,7 +17,7 @@ fun getContentElement(document: Document): Element? {
     val elementName = contentElement?.name
 
     if (elementName != CONTENT_ELEMENT_NAME) {
-        logger.error("Element is not a valid content element (expected $CONTENT_ELEMENT_NAME - got $elementName")
+        logger.error("Element is not a valid content element (expected $CONTENT_ELEMENT_NAME - got $elementName)")
         return null
     }
 

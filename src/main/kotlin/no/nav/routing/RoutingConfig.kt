@@ -1,61 +1,49 @@
 package no.nav.routing
 
 import indexingRoutes
-import no.nav.routing.routes.cms.cmsClientRoutes
-import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.response.*
+import io.ktor.server.auth.*
 import io.ktor.server.routing.*
-import no.nav.routing.plugins.CmsClientPlugin
-import no.nav.routing.plugins.getCmsClientFromCallContext
+import io.ktor.util.logging.*
+import no.nav.routing.routes.cms.cmsClientRoutes
 import no.nav.routing.routes.openSearch.openSearchRoutes
+import no.nav.utils.getConfigVar
 
+
+private val logger = KtorSimpleLogger("RoutingConfig")
 
 fun Application.configureRouting() {
-    routing {
-        route("/cms") {
-            cmsClientRoutes()
-        }
+    authentication {
+        basic("auth-basic") {
+            realm = "Access to CMS and OpenSearch routes"
+            validate { credentials ->
+                val user = getConfigVar("auth.user", this@configureRouting.environment)
+                val password = getConfigVar("auth.password", this@configureRouting.environment)
 
-        route("/opensearch") {
-            openSearchRoutes()
-        }
+                val credentialsAreDefined = user != null && password != null
 
-        route("/indexing") {
-            indexingRoutes()
-        }
-
-        route("/render") {
-            install(CmsClientPlugin)
-
-            get("/content/{contentKey}") {
-                val contentKey = call.parameters["contentKey"]?.toInt()
-
-                if (contentKey == null) {
-                    call.response.status(HttpStatusCode.BadRequest)
-                    call.respondText("Parameter contentKey must be specified")
-                    return@get
+                return@validate if (credentialsAreDefined && credentials.name == user && credentials.password == password) {
+                    UserIdPrincipal(credentials.name)
+                } else {
+                    logger.error("Auth failed for user ${credentials.name}")
+                    null
                 }
+            }
+        }
+    }
 
-                val client = getCmsClientFromCallContext(call)
-                val result = client.renderContent(contentKey)
-
-                call.respondText(result ?: "Oh noes")
+    routing {
+        authenticate("auth-basic") {
+            route("/cms") {
+                cmsClientRoutes()
             }
 
-            get("/version/{versionKey}") {
-                val versionKey = call.parameters["versionKey"]?.toInt()
+            route("/opensearch") {
+                openSearchRoutes()
+            }
 
-                if (versionKey == null) {
-                    call.response.status(HttpStatusCode.BadRequest)
-                    call.respondText("Parameter versionKey must be specified")
-                    return@get
-                }
-
-                val client = getCmsClientFromCallContext(call)
-                val result = client.renderVersion(versionKey)
-
-                call.respondText(result ?: "Oh noes")
+            route("/indexing") {
+                indexingRoutes()
             }
         }
     }

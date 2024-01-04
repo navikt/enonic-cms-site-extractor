@@ -7,20 +7,26 @@ import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.util.*
 import no.nav.cms.client.CmsClient
+import no.nav.utils.getConfigVar
+
 
 private val cmsClientKey = AttributeKey<CmsClient>("cmsClientKey")
 
 fun getCmsClientFromCallContext(call: ApplicationCall): CmsClient = call.attributes[cmsClientKey]
 
 val CmsClientPlugin = createRouteScopedPlugin("CmsClient") {
-    val url = environment?.config?.propertyOrNull("cms.url")?.getString()
-    val user = environment?.config?.propertyOrNull("cms.user")?.getString()
-    val password = environment?.config?.propertyOrNull("cms.password")?.getString()
+    val url = getConfigVar("cms.url", environment)
+    val user = getConfigVar("cms.user", environment)
+    val password = getConfigVar("cms.password", environment)
 
     onCall { call ->
         if (url == null || user == null || password == null) {
             call.response.status(HttpStatusCode.InternalServerError)
             call.respondText("CMS service parameters not found")
+            return@onCall
+        }
+
+        if (call.principal<UserIdPrincipal>() == null) {
             return@onCall
         }
 

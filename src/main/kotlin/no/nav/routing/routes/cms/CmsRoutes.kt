@@ -13,15 +13,26 @@ import no.nav.routing.plugins.getCmsClientFromCallContext
 import no.nav.utils.xmlToString
 import org.jdom.Parent
 
+@Resource("content")
+private class Content() {
+    @Resource("{key}")
+    class Get(val parent: Content = Content(), val key: Int)
 
-@Resource("content/{key}")
-private class Content(val key: Int)
+    @Resource("query")
+    class Query(val parent: Content = Content(), val query: String)
 
-@Resource("version/{key}")
-private class Version(val key: Int)
+    @Resource("render/{key}")
+    class Render(val parent: Content = Content(), val key: Int)
+}
 
-@Resource("content/query")
-private class ContentByQuery(val query: String)
+@Resource("version")
+private class Version() {
+    @Resource("{key}")
+    class Get(val parent: Version = Version(), val key: Int)
+
+    @Resource("render/{key}")
+    class Render(val parent: Version = Version(), val key: Int)
+}
 
 @Resource("menu/{key}")
 private class Menu(val key: Int)
@@ -60,67 +71,77 @@ fun Route.cmsClientRoutes() {
         xml()
     }
 
-    get<Content> { params ->
+    get<Content.Get> {
         xmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getContent(params.key)
+                .getContent(it.key)
         )
     }
 
-    get<Version> { params ->
+    get<Content.Query> {
         xmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getContentVersion(params.key)
+                .getContentByQuery(it.query)
         )
     }
 
-    get<ContentByQuery> { params ->
+    get<Content.Render> {
+        val result = getCmsClientFromCallContext(call).renderContent(it.key)
+        call.respondText(result ?: "Failed to render content for ${it.key}")
+    }
+
+    get<Version.Get> {
         xmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getContentByQuery(params.query)
+                .getContentVersion(it.key)
         )
     }
 
-    get<Menu> { params ->
+    get<Version.Render> {
+        val result = getCmsClientFromCallContext(call).renderVersion(it.key)
+        call.respondText(result ?: "Failed to render content version for ${it.key}")
+    }
+
+    get<Menu> {
         xmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getMenu(params.key)
+                .getMenu(it.key)
         )
     }
 
-    get<MenuItem> { params ->
+    get<MenuItem> {
         xmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getMenuItem(params.key)
+                .getMenuItem(it.key)
         )
     }
 
-    get<MenuData> { params ->
+    get<MenuData> {
         xmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getMenuData(params.key)
+                .getMenuData(it.key)
         )
     }
 
-    get<Category> { params ->
+    get<Category> {
         xmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getCategory(params.key, params.depth)
+                .getCategory(it.key, it.depth)
         )
     }
 
-    get<ContentByCategory> { params ->
+    get<ContentByCategory> {
         xmlResponse(
             call,
             getCmsClientFromCallContext(call)
-                .getContentByCategory(params.key, params.depth, params.index, params.count)
+                .getContentByCategory(it.key, it.depth, it.index, it.count)
         )
     }
 }
