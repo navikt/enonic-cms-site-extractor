@@ -17,22 +17,6 @@ sealed class CmsExtractor(
     val results = LinkedHashMap<Int, String>()
     var isRunning = false
 
-    suspend fun runExtractContent(contentKey: Int, withVersions: Boolean?) {
-        if (start()) {
-            extractContent(contentKey, withVersions ?: false)
-
-            stop()
-        }
-    }
-
-    suspend fun runExtractVersion(versionKey: Int) {
-        if (start()) {
-            extractVersion(versionKey)
-
-            stop()
-        }
-    }
-
     fun getErrors(): String {
         return errors.toString()
     }
