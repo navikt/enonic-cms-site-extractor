@@ -8,6 +8,7 @@ import io.ktor.server.routing.*
 import no.nav.routing.configureRouting
 import org.slf4j.event.Level
 
+
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
 fun Application.module() {

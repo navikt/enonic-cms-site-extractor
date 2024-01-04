@@ -118,7 +118,6 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
 
     fun getContentByQuery(query: String): Document {
         val params = GetContentByQueryParams()
-        params.includeOfflineContent = true
         params.includeData = false
         params.includeOfflineContent = true
         params.includeVersionsInfo = false

@@ -26,10 +26,14 @@ private class Build {
     class Category(val parent: Build = Build(), val categoryKey: Int)
 }
 
-@Resource("index-document")
+@Resource("index")
 private class IndexDocument {
     @Resource("content/{contentKey}")
-    class Content(val parent: IndexDocument = IndexDocument(), val contentKey: Int)
+    class Content(
+        val parent: IndexDocument = IndexDocument(),
+        val contentKey: Int,
+        val withVersions: Boolean? = false
+    )
 
     @Resource("version/versionKey}")
     class Version(val parent: IndexDocument = IndexDocument(), val versionKey: Int)
@@ -53,49 +57,44 @@ fun Route.indexingRoutes() {
 
     get<Build.Content> {
         val cmsClient = getCmsClientFromCallContext(call)
-        val document = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromContent(it.contentKey)
+        val document = OpenSearchContentDocumentBuilder(cmsClient)
+            .buildDocumentFromContent(it.contentKey)
 
-        call.respond(document ?: "oh noes")
+        call.respond(document ?: "Failed to build content document for ${it.contentKey}")
     }
 
     get<Build.Version> {
         val cmsClient = getCmsClientFromCallContext(call)
-        val document = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromVersion(it.versionKey)
+        val document = OpenSearchContentDocumentBuilder(cmsClient)
+            .buildDocumentFromVersion(it.versionKey)
 
-        call.respond(document ?: "oh noes")
+        call.respond(document ?: "Failed to build content document for version ${it.versionKey}")
     }
 
     get<Build.Category> {
         val cmsClient = getCmsClientFromCallContext(call)
-        val document = OpenSearchCategoryDocumentBuilder(cmsClient).build(it.categoryKey)
+        val document = OpenSearchCategoryDocumentBuilder(cmsClient)
+            .build(it.categoryKey)
 
-        call.respond(document ?: "oh noes")
+        call.respond(document ?: "Failed to build category document for ${it.categoryKey}")
     }
 
     get<IndexDocument.Content> {
         val cmsClient = getCmsClientFromCallContext(call)
-        val document = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromContent(it.contentKey)
+        val openSearchClient = getOpenSearchClientFromCallContext(call)
 
-        if (document == null) {
-            call.respondText("Failed to build document!")
-            return@get
-        }
-
-        val response = getOpenSearchClientFromCallContext(call).indexContentDocument(document)
+        val response = CmsContentExtractor(cmsClient, openSearchClient)
+            .runExtractContent(it.contentKey, it.withVersions)
 
         call.respond(response)
     }
 
     get<IndexDocument.Version> {
         val cmsClient = getCmsClientFromCallContext(call)
-        val document = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromVersion(it.versionKey)
+        val openSearchClient = getOpenSearchClientFromCallContext(call)
 
-        if (document == null) {
-            call.respondText("Failed to build document!")
-            return@get
-        }
-
-        val response = getOpenSearchClientFromCallContext(call).indexContentDocument(document)
+        val response = CmsContentExtractor(cmsClient, openSearchClient)
+            .runExtractVersion(it.versionKey)
 
         call.respond(response)
     }
@@ -104,12 +103,13 @@ fun Route.indexingRoutes() {
         val cmsClient = getCmsClientFromCallContext(call)
         val openSearchClient = getOpenSearchClientFromCallContext(call)
 
-        val response = CmsContentExtractor(cmsClient, openSearchClient).extractCategoryToOpenSearch(
-            it.categoryKey,
-            it.withChildren,
-            it.withContent,
-            it.withVersions
-        )
+        val response = CmsContentExtractor(cmsClient, openSearchClient)
+            .runExtractCategory(
+                it.categoryKey,
+                it.withChildren,
+                it.withContent,
+                it.withVersions
+            )
 
         call.respond(response)
     }
