@@ -1,11 +1,11 @@
 package no.nav.routing
 
-import migrationRoutes
+import no.nav.routing.migration.migrationRoutes
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
-import no.nav.routing.routes.cms.cmsClientRoutes
+import no.nav.routing.cms.cmsClientRoutes
 import no.nav.utils.getConfigVar
 
 

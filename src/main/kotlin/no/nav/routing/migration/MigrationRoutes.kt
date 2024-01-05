@@ -1,3 +1,5 @@
+package no.nav.routing.migration
+
 import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.serialization.kotlinx.json.*
@@ -6,25 +8,8 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import no.nav.db.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
-import no.nav.db.openSearch.documents.content.OpenSearchContentDocumentBuilder
 import no.nav.migration.*
-import no.nav.routing.plugins.CmsClientPlugin
-import no.nav.routing.plugins.OpenSearchClientPlugin
-import no.nav.routing.plugins.getCmsClientFromCallContext
 
-
-@Resource("build")
-private class Build {
-    @Resource("content/{contentKey}")
-    class Content(val parent: Build = Build(), val contentKey: Int)
-
-    @Resource("version/{versionKey}")
-    class Version(val parent: Build = Build(), val versionKey: Int)
-
-    @Resource("category/{categoryKey}")
-    class Category(val parent: Build = Build(), val categoryKey: Int)
-}
 
 private class Migrate {
     @Resource("content/{contentKey}")
@@ -45,7 +30,7 @@ private class Migrate {
     )
 }
 
-private suspend fun migrationResponse(
+private suspend fun migrationRequestHandler(
     migratorParams: CmsMigratorParams,
     call: ApplicationCall,
     environment: ApplicationEnvironment?
@@ -73,38 +58,12 @@ private suspend fun migrationResponse(
 }
 
 fun Route.migrationRoutes() {
-    install(OpenSearchClientPlugin)
-    install(CmsClientPlugin)
     install(ContentNegotiation) {
         json()
     }
 
-    get<Build.Content> {
-        val cmsClient = getCmsClientFromCallContext(call)
-        val document = OpenSearchContentDocumentBuilder(cmsClient)
-            .buildDocumentFromContent(it.contentKey)
-
-        call.respond(document ?: "Failed to build content document for ${it.contentKey}")
-    }
-
-    get<Build.Version> {
-        val cmsClient = getCmsClientFromCallContext(call)
-        val document = OpenSearchContentDocumentBuilder(cmsClient)
-            .buildDocumentFromVersion(it.versionKey)
-
-        call.respond(document ?: "Failed to build content document for version ${it.versionKey}")
-    }
-
-    get<Build.Category> {
-        val cmsClient = getCmsClientFromCallContext(call)
-        val document = OpenSearchCategoryDocumentBuilder(cmsClient)
-            .build(it.categoryKey)
-
-        call.respond(document ?: "Failed to build category document for ${it.categoryKey}")
-    }
-
     get<Migrate.Category> {
-        migrationResponse(
+        migrationRequestHandler(
             CmsCategoryMigratorParams(
                 key = it.categoryKey,
                 withChildren = it.withChildren,
@@ -117,7 +76,7 @@ fun Route.migrationRoutes() {
     }
 
     get<Migrate.Content> {
-        migrationResponse(
+        migrationRequestHandler(
             CmsContentMigratorParams(
                 key = it.contentKey,
                 withVersions = it.withVersions
@@ -128,7 +87,7 @@ fun Route.migrationRoutes() {
     }
 
     get<Migrate.Version> {
-        migrationResponse(
+        migrationRequestHandler(
             CmsVersionMigratorParams(it.versionKey),
             call,
             this@migrationRoutes.environment
