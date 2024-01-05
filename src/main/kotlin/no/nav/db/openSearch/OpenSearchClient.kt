@@ -43,14 +43,6 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
         return this.client.engineInfo()
     }
 
-    suspend fun deleteIndex(index: String) {
-        return this.client.deleteIndex(index)
-    }
-
-    suspend fun getIndex(index: String): JsonObject {
-        return this.client.getIndex(index)
-    }
-
     suspend fun indexContentDocument(document: OpenSearchContentDocument): DocumentIndexResponse {
         val id = if (document.isCurrentVersion) document.contentKey else document.versionKey
         return this.client.indexDocument(target = contentIndexName, document = document, id = id)

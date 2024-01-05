@@ -1,4 +1,4 @@
-package no.nav.extractor
+package no.nav.migration
 
 import io.ktor.util.logging.*
 import no.nav.cms.client.CmsClient
@@ -7,16 +7,61 @@ import no.nav.db.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
 import no.nav.db.openSearch.documents.content.OpenSearchContentDocumentBuilder
 
 
-private val logger = KtorSimpleLogger("CmsContentExtractor")
+enum class CmsMigratorState {
+    NOT_STARTED, RUNNING, ABORTED, FINISHED
+}
 
-sealed class CmsExtractor(
+private val logger = KtorSimpleLogger("CmsContentMigrator")
+
+class CmsMigrator(
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
-    protected val key: Int
+    val params: CmsMigratorParams
 ) {
     val errors = LinkedHashMap<Int, String>()
     val results = LinkedHashMap<Int, String>()
-    var isRunning = false
+    var state = CmsMigratorState.NOT_STARTED
+
+    suspend fun run(): String {
+        if (state == CmsMigratorState.RUNNING) {
+            return "Migrator for ${params.key} is already running"
+        }
+
+        state = CmsMigratorState.RUNNING
+        errors.clear()
+        results.clear()
+
+        val response = when (params) {
+            is CmsCategoryMigratorParams -> {
+                migrateCategory(
+                    params.key,
+                    params.withChildren ?: false,
+                    params.withContent ?: false,
+                    params.withVersions ?: false
+                )
+                "Started migrating category ${params.key} " +
+                        "(with children: ${params.withChildren} - " +
+                        "with content: ${params.withContent} - " +
+                        "with versions: ${params.withVersions})"
+            }
+
+            is CmsContentMigratorParams -> {
+                migrateContent(
+                    params.key,
+                    params.withVersions ?: false
+                )
+                "Started migrating content ${params.key} " +
+                        "(with versions: ${params.withVersions})"
+            }
+
+            is CmsVersionMigratorParams -> {
+                migrateVersion(params.key)
+                "Started migrating version ${params.key}"
+            }
+        }
+
+        return response
+    }
 
     fun getErrors(): String {
         return errors.toString()
@@ -24,22 +69,6 @@ sealed class CmsExtractor(
 
     fun getResults(): String {
         return results.toString()
-    }
-
-    protected fun start(): Boolean {
-        if (isRunning) {
-            return false
-        }
-
-        isRunning = true
-        errors.clear()
-        results.clear()
-
-        return true
-    }
-
-    protected fun stop() {
-        isRunning = false
     }
 
     private fun logError(key: Int, msg: String) {
@@ -52,7 +81,7 @@ sealed class CmsExtractor(
         logger.info("[$key]: $msg")
     }
 
-    protected suspend fun extractCategory(
+    private suspend fun migrateCategory(
         categoryKey: Int,
         withChildren: Boolean,
         withContent: Boolean,
@@ -71,18 +100,18 @@ sealed class CmsExtractor(
 
         if (withContent) {
             categoryDocument.contents?.forEach {
-                extractContent(it.key.toInt(), withVersions)
+                migrateContent(it.key.toInt(), withVersions)
             }
         }
 
         if (withChildren) {
             categoryDocument.categories?.forEach {
-                extractCategory(it.key.toInt(), withChildren, withContent, withVersions)
+                migrateCategory(it.key.toInt(), withChildren, withContent, withVersions)
             }
         }
     }
 
-    protected suspend fun extractContent(contentKey: Int, withVersions: Boolean) {
+    private suspend fun migrateContent(contentKey: Int, withVersions: Boolean) {
         val contentDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromContent(contentKey)
 
         if (contentDocument == null) {
@@ -97,13 +126,13 @@ sealed class CmsExtractor(
         if (withVersions) {
             contentDocument.versions.forEach {
                 if (it.key != contentDocument.versionKey) {
-                    extractVersion(it.key.toInt())
+                    migrateVersion(it.key.toInt())
                 }
             }
         }
     }
 
-    protected suspend fun extractVersion(versionKey: Int) {
+    private suspend fun migrateVersion(versionKey: Int) {
         val contentVersionDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromVersion(versionKey)
 
         if (contentVersionDocument == null) {

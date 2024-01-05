@@ -1,3 +1,4 @@
+import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -7,7 +8,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.db.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
 import no.nav.db.openSearch.documents.content.OpenSearchContentDocumentBuilder
-import no.nav.extractor.CmsExtractorFactory
+import no.nav.migration.*
 import no.nav.routing.plugins.CmsClientPlugin
 import no.nav.routing.plugins.OpenSearchClientPlugin
 import no.nav.routing.plugins.getCmsClientFromCallContext
@@ -47,6 +48,33 @@ private class IndexDocument {
     )
 }
 
+private suspend fun indexingResponse(
+    migratorParams: CmsMigratorParams,
+    call: ApplicationCall,
+    environment: ApplicationEnvironment?
+) {
+    val migrator = CmsMigratorFactory
+        .createOrRetrieveMigrator(
+            migratorParams,
+            environment
+        )
+
+    if (migrator == null) {
+        call.response.status(HttpStatusCode.InternalServerError)
+        call.respond("Could not initialize CMS migrator")
+        return
+    }
+
+    if (migrator.state == CmsMigratorState.RUNNING) {
+        call.response.status(HttpStatusCode.Forbidden)
+        call.respond("Migrator for ${migrator.params.key} is already running")
+        return
+    }
+
+    val response = migrator.run()
+    call.respond(response)
+}
+
 fun Route.indexingRoutes() {
     install(OpenSearchClientPlugin)
     install(CmsClientPlugin)
@@ -78,31 +106,35 @@ fun Route.indexingRoutes() {
         call.respond(document ?: "Failed to build category document for ${it.categoryKey}")
     }
 
-    get<IndexDocument.Content> {
-        val response = CmsExtractorFactory
-            .createOrRetrieveContentExtractor(it.contentKey, this@indexingRoutes.environment)
-            ?.run(it.withVersions)
+    get<IndexDocument.Category> {
+        indexingResponse(
+            CmsCategoryMigratorParams(
+                key = it.categoryKey,
+                withChildren = it.withChildren,
+                withContent = it.withContent,
+                withVersions = it.withVersions
+            ),
+            call,
+            this@indexingRoutes.environment
+        )
+    }
 
-        call.respond(response ?: "Oh noes")
+    get<IndexDocument.Content> {
+        indexingResponse(
+            CmsContentMigratorParams(
+                key = it.contentKey,
+                withVersions = it.withVersions
+            ),
+            call,
+            this@indexingRoutes.environment
+        )
     }
 
     get<IndexDocument.Version> {
-        val response = CmsExtractorFactory
-            .createOrRetrieveVersionExtractor(it.versionKey, this@indexingRoutes.environment)
-            ?.run()
-
-        call.respond(response ?: "Oh noes")
-    }
-
-    get<IndexDocument.Category> {
-        val response = CmsExtractorFactory
-            .createOrRetrieveCategoryExtractor(it.categoryKey, this@indexingRoutes.environment)
-            ?.run(
-                it.withChildren,
-                it.withContent,
-                it.withVersions
-            )
-
-        call.respond(response ?: "Oh noes")
+        indexingResponse(
+            CmsVersionMigratorParams(it.versionKey),
+            call,
+            this@indexingRoutes.environment
+        )
     }
 }
