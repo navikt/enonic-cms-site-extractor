@@ -45,16 +45,12 @@ data class ContentMetaData(
     val publishFrom: String?,
     val publishTo: String?,
 
-    val category: CategoryRefData?,
-
     val owner: CmsUserData?,
     val modifier: CmsUserData?,
 )
 
 @Serializable
 data class OpenSearchContentDocument(
-    val path: String,
-
     val html: String?,
     val xmlAsString: String,
 
@@ -67,6 +63,7 @@ data class OpenSearchContentDocument(
 
     val versions: List<ContentVersionReference>,
     val locations: List<ContentLocation>?,
+    val category: CategoryRefData?,
 
     val meta: ContentMetaData,
 )

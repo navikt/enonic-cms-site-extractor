@@ -28,7 +28,6 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
         val html = this.cmsClient.renderDocument(cmsDocument)
 
         return OpenSearchContentDocument(
-            path = "",
             contentKey = contentElement.getAttributeValue("key"),
             versionKey = contentElement.getAttributeValue("versionkey"),
             isCurrentVersion = contentElement.getAttribute("current").booleanValue,
@@ -36,6 +35,7 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
             displayName = contentElement.getChildText("display-name"),
             versions = getVersionReferences(contentElement),
             locations = getLocations(contentElement),
+            category = getCategory(contentElement),
             meta = getMetaData(contentElement),
             html = html,
             xmlAsString = documentXml,
@@ -57,7 +57,6 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
             timestamp = parseDateTime(element.getAttributeValue("timestamp")),
             publishFrom = parseDateTime(element.getAttributeValue("publishfrom")),
             publishTo = parseDateTime(element.getAttributeValue("publishto")),
-            category = getCategory(element),
             owner = transformToCmsUser(element.getChild("owner")),
             modifier = transformToCmsUser(element.getChild("modifier")),
         )

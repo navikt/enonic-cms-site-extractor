@@ -34,7 +34,6 @@ private val meta: IndexMappings = {
     date(ContentMetaData::publishFrom)
     date(ContentMetaData::publishTo)
 
-    objField(ContentMetaData::category, null, categoryRefIndexMappings)
 
     objField(ContentMetaData::owner, null, cmsUserIndexMappings)
     objField(ContentMetaData::modifier, null, cmsUserIndexMappings)
@@ -51,19 +50,19 @@ private val locations: IndexMappings = {
 }
 
 val contentIndexMappings: IndexMappings = {
-    keyword(OpenSearchContentDocument::path)
-
-    text(OpenSearchContentDocument::html)
     text(OpenSearchContentDocument::xmlAsString)
+    text(OpenSearchContentDocument::html)
 
     keyword(OpenSearchContentDocument::contentKey)
     keyword(OpenSearchContentDocument::versionKey)
     bool(OpenSearchContentDocument::isCurrentVersion)
 
-    text(OpenSearchContentDocument::name)
+    keyword(OpenSearchContentDocument::name)
     text(OpenSearchContentDocument::displayName)
 
     objField(OpenSearchContentDocument::versions, null, versions)
     objField(OpenSearchContentDocument::locations, null, locations)
+    objField(OpenSearchContentDocument::category, null, categoryRefIndexMappings)
+
     objField(OpenSearchContentDocument::meta, null, meta)
 }
