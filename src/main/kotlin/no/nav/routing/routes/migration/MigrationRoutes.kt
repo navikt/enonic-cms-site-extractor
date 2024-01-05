@@ -26,21 +26,18 @@ private class Build {
     class Category(val parent: Build = Build(), val categoryKey: Int)
 }
 
-@Resource("index")
-private class IndexDocument {
+private class Migrate {
     @Resource("content/{contentKey}")
     class Content(
-        val parent: IndexDocument = IndexDocument(),
         val contentKey: Int,
         val withVersions: Boolean? = false
     )
 
     @Resource("version/versionKey}")
-    class Version(val parent: IndexDocument = IndexDocument(), val versionKey: Int)
+    class Version(val versionKey: Int)
 
     @Resource("category/{categoryKey}")
     class Category(
-        val parent: IndexDocument = IndexDocument(),
         val categoryKey: Int,
         val withChildren: Boolean? = false,
         val withContent: Boolean? = false,
@@ -48,7 +45,7 @@ private class IndexDocument {
     )
 }
 
-private suspend fun indexingResponse(
+private suspend fun migrationResponse(
     migratorParams: CmsMigratorParams,
     call: ApplicationCall,
     environment: ApplicationEnvironment?
@@ -75,7 +72,7 @@ private suspend fun indexingResponse(
     call.respond(response)
 }
 
-fun Route.indexingRoutes() {
+fun Route.migrationRoutes() {
     install(OpenSearchClientPlugin)
     install(CmsClientPlugin)
     install(ContentNegotiation) {
@@ -106,8 +103,8 @@ fun Route.indexingRoutes() {
         call.respond(document ?: "Failed to build category document for ${it.categoryKey}")
     }
 
-    get<IndexDocument.Category> {
-        indexingResponse(
+    get<Migrate.Category> {
+        migrationResponse(
             CmsCategoryMigratorParams(
                 key = it.categoryKey,
                 withChildren = it.withChildren,
@@ -115,26 +112,26 @@ fun Route.indexingRoutes() {
                 withVersions = it.withVersions
             ),
             call,
-            this@indexingRoutes.environment
+            this@migrationRoutes.environment
         )
     }
 
-    get<IndexDocument.Content> {
-        indexingResponse(
+    get<Migrate.Content> {
+        migrationResponse(
             CmsContentMigratorParams(
                 key = it.contentKey,
                 withVersions = it.withVersions
             ),
             call,
-            this@indexingRoutes.environment
+            this@migrationRoutes.environment
         )
     }
 
-    get<IndexDocument.Version> {
-        indexingResponse(
+    get<Migrate.Version> {
+        migrationResponse(
             CmsVersionMigratorParams(it.versionKey),
             call,
-            this@indexingRoutes.environment
+            this@migrationRoutes.environment
         )
     }
 }

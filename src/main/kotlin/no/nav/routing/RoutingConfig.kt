@@ -1,12 +1,11 @@
 package no.nav.routing
 
-import indexingRoutes
+import migrationRoutes
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
 import no.nav.routing.routes.cms.cmsClientRoutes
-import no.nav.routing.routes.openSearch.openSearchRoutes
 import no.nav.utils.getConfigVar
 
 
@@ -38,12 +37,8 @@ fun Application.configureRouting() {
                 cmsClientRoutes()
             }
 
-            route("/opensearch") {
-                openSearchRoutes()
-            }
-
-            route("/indexing") {
-                indexingRoutes()
+            route("/migrate") {
+                migrationRoutes()
             }
         }
     }
