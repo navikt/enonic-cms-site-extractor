@@ -4,7 +4,6 @@ import CategoryRefData
 import no.nav.cms.client.CmsClient
 import no.nav.utils.parseDateTime
 import no.nav.utils.xmlToString
-import org.jdom.Document
 import org.jdom.Element
 
 
@@ -53,17 +52,5 @@ class OpenSearchCategoryDocumentBuilder(private val cmsClient: CmsClient) {
                     timestamp = parseDateTime(it.getAttributeValue("timestamp")),
                 )
             }
-    }
-
-
-    private fun getContents(key: Int, index: Int = 0, result: List<ContentRefData>): Document? {
-        val contents = cmsClient.getContentByCategory(key, 1, index, 100)
-
-        val resultCount = contents.rootElement.getAttributeValue("resultcount").toInt()
-        val totalCount = contents.rootElement.getAttributeValue("totalcount").toInt()
-
-        val currentCount = index + resultCount
-
-        return null
     }
 }

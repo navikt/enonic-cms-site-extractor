@@ -2,6 +2,7 @@ package no.nav.routing.cms
 
 import io.ktor.http.*
 import io.ktor.resources.*
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.serialization.kotlinx.xml.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -11,8 +12,8 @@ import io.ktor.server.routing.*
 import no.nav.cms.client.CmsClientBuilder
 import no.nav.db.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
 import no.nav.db.openSearch.documents.content.OpenSearchContentDocumentBuilder
-import no.nav.utils.xmlToString
-import org.jdom.Parent
+import no.nav.utils.jsonResponse
+import no.nav.utils.xmlResponse
 
 
 @Resource("content")
@@ -63,25 +64,10 @@ private class Build {
     class Category(val parent: Build = Build(), val categoryKey: Int)
 }
 
-private suspend fun <T : Parent> xmlResponse(call: ApplicationCall, xml: T?) {
-    if (xml == null) {
-        call.response.status(HttpStatusCode.InternalServerError)
-        return call.respondText("No XML provided")
-    }
-
-    val documentString = xmlToString(xml)
-
-    if (documentString == null) {
-        call.response.status(HttpStatusCode.InternalServerError)
-        return call.respondText("Failed to parse XML")
-    }
-
-    call.respondText(documentString, ContentType.Text.Xml)
-}
-
 fun Route.cmsClientRoutes() {
     install(ContentNegotiation) {
         xml()
+        json()
     }
 
     get<Content.Get> {
@@ -170,6 +156,19 @@ fun Route.cmsClientRoutes() {
         )
     }
 
+    get<Build.Category> {
+        val cmsClient = CmsClientBuilder(this@cmsClientRoutes.environment).build()
+        if (cmsClient == null) {
+            call.response.status(HttpStatusCode.InternalServerError)
+            return@get call.respond("Failed to initialize CMS client")
+        }
+
+        val document = OpenSearchCategoryDocumentBuilder(cmsClient)
+            .build(it.categoryKey)
+
+        jsonResponse(call, document, "Failed to build category document for ${it.categoryKey}")
+    }
+
     get<Build.Content> {
         val cmsClient = CmsClientBuilder(this@cmsClientRoutes.environment).build()
         if (cmsClient == null) {
@@ -180,7 +179,7 @@ fun Route.cmsClientRoutes() {
         val document = OpenSearchContentDocumentBuilder(cmsClient)
             .buildDocumentFromContent(it.contentKey)
 
-        call.respond(document ?: "Failed to build content document for ${it.contentKey}")
+        jsonResponse(call, document, "Failed to build content document for ${it.contentKey}")
     }
 
     get<Build.Version> {
@@ -193,19 +192,6 @@ fun Route.cmsClientRoutes() {
         val document = OpenSearchContentDocumentBuilder(cmsClient)
             .buildDocumentFromVersion(it.versionKey)
 
-        call.respond(document ?: "Failed to build content document for version ${it.versionKey}")
-    }
-
-    get<Build.Category> {
-        val cmsClient = CmsClientBuilder(this@cmsClientRoutes.environment).build()
-        if (cmsClient == null) {
-            call.response.status(HttpStatusCode.InternalServerError)
-            return@get call.respond("Failed to initialize CMS client")
-        }
-
-        val document = OpenSearchCategoryDocumentBuilder(cmsClient)
-            .build(it.categoryKey)
-
-        call.respond(document ?: "Failed to build category document for ${it.categoryKey}")
+        jsonResponse(call, document, "Failed to build content document for version ${it.versionKey}")
     }
 }
