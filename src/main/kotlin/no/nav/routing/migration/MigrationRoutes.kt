@@ -12,6 +12,14 @@ import no.nav.migration.*
 
 
 private class Migrate {
+    @Resource("category/{categoryKey}")
+    class Category(
+        val categoryKey: Int,
+        val withChildren: Boolean? = false,
+        val withContent: Boolean? = false,
+        val withVersions: Boolean? = false
+    )
+
     @Resource("content/{contentKey}")
     class Content(
         val contentKey: Int,
@@ -20,14 +28,6 @@ private class Migrate {
 
     @Resource("version/versionKey}")
     class Version(val versionKey: Int)
-
-    @Resource("category/{categoryKey}")
-    class Category(
-        val categoryKey: Int,
-        val withChildren: Boolean? = false,
-        val withContent: Boolean? = false,
-        val withVersions: Boolean? = false
-    )
 }
 
 private suspend fun migrationRequestHandler(

@@ -1,7 +1,7 @@
-package no.nav.db.openSearch.documents.category
+package no.nav.openSearch.documents.category
 
-import no.nav.db.openSearch.documents.IndexMappings
-import no.nav.db.openSearch.documents._partials.categoryRef.categoryRefIndexMappings
+import no.nav.openSearch.documents.IndexMappings
+import no.nav.openSearch.documents._partials.categoryRef.categoryRefIndexMappings
 
 private val contentRefIndexMappings: IndexMappings = {
     keyword(ContentRefData::key)

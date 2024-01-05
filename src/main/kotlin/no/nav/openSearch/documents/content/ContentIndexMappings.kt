@@ -1,8 +1,8 @@
-package no.nav.db.openSearch.documents.content
+package no.nav.openSearch.documents.content
 
-import no.nav.db.openSearch.documents.IndexMappings
-import no.nav.db.openSearch.documents._partials.categoryRef.categoryRefIndexMappings
-import no.nav.db.openSearch.documents._partials.cmsUser.cmsUserIndexMappings
+import no.nav.openSearch.documents.IndexMappings
+import no.nav.openSearch.documents._partials.categoryRef.categoryRefIndexMappings
+import no.nav.openSearch.documents._partials.cmsUser.cmsUserIndexMappings
 
 
 private val versions: IndexMappings = {

@@ -3,7 +3,7 @@ package no.nav.migration
 import io.ktor.server.application.*
 import io.ktor.util.logging.*
 import no.nav.cms.client.CmsClientBuilder
-import no.nav.db.openSearch.OpenSearchClientBuilder
+import no.nav.openSearch.OpenSearchClientBuilder
 
 
 private val logger = KtorSimpleLogger("CmsMigratorFactory")
@@ -30,14 +30,18 @@ object CmsMigratorFactory {
         }
 
         val cmsClient = CmsClientBuilder(environment).build()
-        val openSearchClient = OpenSearchClientBuilder(environment).build()
-
-        if (cmsClient == null || openSearchClient == null) {
-            logger.error("Failed to initialize required clients")
+        if (cmsClient == null) {
+            logger.error("Failed to initialize CMS client")
             return null
         }
 
-        val migrator = CmsMigrator(cmsClient, openSearchClient, params)
+        val openSearchClient = OpenSearchClientBuilder(environment).build()
+        if (openSearchClient == null) {
+            logger.error("Failed to initialize OpenSearch client")
+            return null
+        }
+
+        val migrator = CmsMigrator(params, cmsClient, openSearchClient)
 
         migratorMap[key] = migrator
 

@@ -2,9 +2,9 @@ package no.nav.migration
 
 import io.ktor.util.logging.*
 import no.nav.cms.client.CmsClient
-import no.nav.db.openSearch.OpenSearchClient
-import no.nav.db.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
-import no.nav.db.openSearch.documents.content.OpenSearchContentDocumentBuilder
+import no.nav.openSearch.OpenSearchClient
+import no.nav.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
+import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 
 
 enum class CmsMigratorState {
@@ -14,9 +14,9 @@ enum class CmsMigratorState {
 private val logger = KtorSimpleLogger("CmsContentMigrator")
 
 class CmsMigrator(
+    val params: CmsMigratorParams,
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
-    val params: CmsMigratorParams
 ) {
     val errors = LinkedHashMap<Int, String>()
     val results = LinkedHashMap<Int, String>()

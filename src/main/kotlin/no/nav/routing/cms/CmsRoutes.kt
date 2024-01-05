@@ -10,8 +10,8 @@ import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.cms.client.CmsClientBuilder
-import no.nav.db.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
-import no.nav.db.openSearch.documents.content.OpenSearchContentDocumentBuilder
+import no.nav.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
+import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 import no.nav.utils.jsonResponse
 import no.nav.utils.xmlResponse
 

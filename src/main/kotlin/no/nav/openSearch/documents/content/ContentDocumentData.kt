@@ -1,7 +1,7 @@
-package no.nav.db.openSearch.documents.content
+package no.nav.openSearch.documents.content
 
 import CategoryRefData
-import no.nav.db.openSearch.documents._partials.cmsUser.CmsUserData
+import no.nav.openSearch.documents._partials.cmsUser.CmsUserData
 import kotlinx.serialization.Serializable
 
 

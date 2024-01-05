@@ -1,4 +1,4 @@
-package no.nav.db.openSearch.documents.category
+package no.nav.openSearch.documents.category
 
 import CategoryRefData
 import no.nav.cms.client.CmsClient

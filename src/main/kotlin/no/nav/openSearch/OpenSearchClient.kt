@@ -1,13 +1,12 @@
-package no.nav.db.openSearch
+package no.nav.openSearch
 
 import com.jillesvangurp.ktsearch.*
 import io.ktor.util.logging.*
-import kotlinx.serialization.json.JsonObject
-import no.nav.db.openSearch.documents.IndexMappings
-import no.nav.db.openSearch.documents.category.OpenSearchCategoryDocument
-import no.nav.db.openSearch.documents.category.categoryIndexMappings
-import no.nav.db.openSearch.documents.content.OpenSearchContentDocument
-import no.nav.db.openSearch.documents.content.contentIndexMappings
+import no.nav.openSearch.documents.IndexMappings
+import no.nav.openSearch.documents.category.OpenSearchCategoryDocument
+import no.nav.openSearch.documents.category.categoryIndexMappings
+import no.nav.openSearch.documents.content.OpenSearchContentDocument
+import no.nav.openSearch.documents.content.contentIndexMappings
 
 
 private val logger = KtorSimpleLogger("OpenSearchClient")
@@ -37,10 +36,6 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
         }
 
         return result.acknowledged
-    }
-
-    suspend fun info(): SearchEngineInformation {
-        return this.client.engineInfo()
     }
 
     suspend fun indexContentDocument(document: OpenSearchContentDocument): DocumentIndexResponse {

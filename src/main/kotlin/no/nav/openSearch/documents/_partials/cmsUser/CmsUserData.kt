@@ -1,4 +1,4 @@
-package no.nav.db.openSearch.documents._partials.cmsUser
+package no.nav.openSearch.documents._partials.cmsUser
 
 import kotlinx.serialization.Serializable
 

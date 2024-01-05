@@ -1,4 +1,4 @@
-package no.nav.db.openSearch.documents
+package no.nav.openSearch.documents
 
 import com.jillesvangurp.searchdsls.mappingdsl.FieldMappings
 

@@ -1,4 +1,4 @@
-package no.nav.db.openSearch
+package no.nav.openSearch
 
 import com.jillesvangurp.ktsearch.KtorRestClient
 import com.jillesvangurp.ktsearch.SearchClient

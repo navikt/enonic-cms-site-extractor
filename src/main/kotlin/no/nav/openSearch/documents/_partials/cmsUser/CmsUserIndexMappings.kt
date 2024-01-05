@@ -1,6 +1,6 @@
-package no.nav.db.openSearch.documents._partials.cmsUser
+package no.nav.openSearch.documents._partials.cmsUser
 
-import no.nav.db.openSearch.documents.IndexMappings
+import no.nav.openSearch.documents.IndexMappings
 
 
 val cmsUserIndexMappings: IndexMappings = {

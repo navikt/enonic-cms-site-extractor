@@ -1,7 +1,7 @@
-package no.nav.db.openSearch.documents._partials.categoryRef
+package no.nav.openSearch.documents._partials.categoryRef
 
 import CategoryRefData
-import no.nav.db.openSearch.documents.IndexMappings
+import no.nav.openSearch.documents.IndexMappings
 
 
 val categoryRefIndexMappings: IndexMappings = {
