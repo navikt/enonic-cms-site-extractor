@@ -3,6 +3,7 @@ package no.nav.cms.client
 import com.enonic.cms.api.client.ClientException
 import com.enonic.cms.api.client.ClientFactory
 import com.enonic.cms.api.client.RemoteClient
+import com.enonic.cms.api.client.model.GetBinaryParams
 import com.enonic.cms.api.client.model.GetCategoriesParams
 import com.enonic.cms.api.client.model.GetContentByCategoryParams
 import com.enonic.cms.api.client.model.GetContentByQueryParams
@@ -40,17 +41,16 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
         }
     }
 
-    private fun <ReturnType> loginOnRpcError(func: () -> ReturnType): ReturnType {
+    private fun <ReturnType> rpcErrorHandler(func: () -> ReturnType): ReturnType? {
         try {
             return func()
         } catch (e: ClientException) {
-            logger.error("Error from RPC client: ${e.message} - attempting to refresh login session")
-            rpcLogin()
-            return func()
+            logger.error("Error from RPC client: ${e.message}")
+            return null
         }
     }
 
-    fun getContent(contentKeys: IntArray): Document {
+    fun getContent(contentKeys: IntArray): Document? {
         val params = GetContentParams()
         params.contentKeys = contentKeys
         params.includeData = true
@@ -58,39 +58,39 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
         params.includeOfflineContent = true
         params.includeUserRights = false
 
-        return loginOnRpcError { rpcClient.getContent(params) }
+        return rpcErrorHandler { rpcClient.getContent(params) }
     }
 
-    fun getContent(contentKey: Int): Document {
+    fun getContent(contentKey: Int): Document? {
         return getContent(intArrayOf(contentKey))
     }
 
-    fun getContentVersions(versionKeys: IntArray): Document {
+    fun getContentVersions(versionKeys: IntArray): Document? {
         val params = GetContentVersionsParams()
         params.contentVersionKeys = versionKeys
         params.contentRequiredToBeOnline = false
 
-        return loginOnRpcError { rpcClient.getContentVersions(params) }
+        return rpcErrorHandler { rpcClient.getContentVersions(params) }
     }
 
-    fun getContentVersion(versionKey: Int): Document {
+    fun getContentVersion(versionKey: Int): Document? {
         return getContentVersions(intArrayOf(versionKey))
     }
 
-    fun getMenu(menuKey: Int): Document {
+    fun getMenu(menuKey: Int): Document? {
         val params = GetMenuParams()
         params.menuKey = menuKey
         params.includeHidden = true
 
-        return loginOnRpcError { rpcClient.getMenu(params) }
+        return rpcErrorHandler { rpcClient.getMenu(params) }
     }
 
-    fun getMenuItem(menuItemKey: Int): Document {
+    fun getMenuItem(menuItemKey: Int): Document? {
         val params = GetMenuItemParams()
         params.menuItemKey = menuItemKey
         params.details = true
 
-        return loginOnRpcError { rpcClient.getMenuItem(params) }
+        return rpcErrorHandler { rpcClient.getMenuItem(params) }
     }
 
     fun getCategory(categoryKey: Int, depth: Int? = null): Element? {
@@ -99,12 +99,12 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
         params.includeTopCategory = true
         params.levels = depth ?: 1
 
-        return loginOnRpcError { rpcClient.getCategories(params) }
+        return rpcErrorHandler { rpcClient.getCategories(params) }
             ?.rootElement
             ?.getChild("category")
     }
 
-    fun getContentByCategory(categoryKey: Int, depth: Int? = null, index: Int? = null, count: Int? = null): Document {
+    fun getContentByCategory(categoryKey: Int, depth: Int? = null, index: Int? = null, count: Int? = null): Document? {
         val params = GetContentByCategoryParams()
         params.categoryKeys = intArrayOf(categoryKey)
         params.includeOfflineContent = true
@@ -113,10 +113,10 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
         params.index = index ?: 0
         params.count = count ?: 100
 
-        return loginOnRpcError { rpcClient.getContentByCategory(params) }
+        return rpcErrorHandler { rpcClient.getContentByCategory(params) }
     }
 
-    fun getContentByQuery(query: String): Document {
+    fun getContentByQuery(query: String): Document? {
         val params = GetContentByQueryParams()
         params.includeData = false
         params.includeOfflineContent = true
@@ -124,21 +124,36 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
         params.includeUserRights = false
         params.query = query
 
-        return loginOnRpcError { rpcClient.getContentByQuery(params) }
+        return rpcErrorHandler { rpcClient.getContentByQuery(params) }
     }
 
-    fun getMenuData(menuKey: Int): Document {
+    fun getMenuData(menuKey: Int): Document? {
         val params = GetMenuDataParams()
         params.menuKey = menuKey
 
-        return loginOnRpcError { rpcClient.getMenuData(params) }
+        return rpcErrorHandler { rpcClient.getMenuData(params) }
+    }
+
+    fun getBinary(binaryKey: Int): Document? {
+        val params = GetBinaryParams()
+        params.binaryKey = binaryKey
+
+        return rpcErrorHandler { rpcClient.getBinary(params) }
+    }
+
+    suspend fun getAttachmentFile(contentKey: Int, binaryKey: Int, versionKey: Int): ByteArray? {
+        return restClient.getAttachmentFile(contentKey, binaryKey, versionKey)
     }
 
     suspend fun getPageTemplateKey(contentKey: String, versionKey: String, pageKey: String, unitKey: String): String? {
         return restClient.getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
     }
 
-    suspend fun renderDocument(document: Document): String? {
+    suspend fun renderDocument(document: Document?): String? {
+        if (document == null) {
+            return null
+        }
+
         val contentElement = getContentElement(document) ?: return null
         val params = ContentRenderParamsBuilder(contentElement, this).build() ?: return null
 

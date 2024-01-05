@@ -63,6 +63,7 @@ val contentIndexMappings: IndexMappings = {
     objField(OpenSearchContentDocument::versions, null, versions)
     objField(OpenSearchContentDocument::locations, null, locations)
     objField(OpenSearchContentDocument::category, null, categoryRefIndexMappings)
+    keyword(OpenSearchContentDocument::binaryKeys)
 
     objField(OpenSearchContentDocument::meta, null, meta)
 }

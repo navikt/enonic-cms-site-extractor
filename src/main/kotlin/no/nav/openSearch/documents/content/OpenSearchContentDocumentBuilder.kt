@@ -22,7 +22,11 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
         return transform(document)
     }
 
-    private suspend fun transform(cmsDocument: Document): OpenSearchContentDocument? {
+    private suspend fun transform(cmsDocument: Document?): OpenSearchContentDocument? {
+        if (cmsDocument == null) {
+            return null
+        }
+
         val contentElement = getContentElement(cmsDocument) ?: return null
         val documentXml = xmlToString(contentElement.document) ?: return null
         val html = this.cmsClient.renderDocument(cmsDocument)
@@ -36,6 +40,7 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
             versions = getVersionReferences(contentElement),
             locations = getLocations(contentElement),
             category = getCategory(contentElement),
+            binaryKeys = listOf(""),
             meta = getMetaData(contentElement),
             html = html,
             xmlAsString = documentXml,

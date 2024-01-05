@@ -41,7 +41,7 @@ class OpenSearchCategoryDocumentBuilder(private val cmsClient: CmsClient) {
         val contentsDocument = cmsClient.getContentByCategory(categoryKey, 1, 0, 1000)
 
         return contentsDocument
-            .rootElement
+            ?.rootElement
             ?.getChildren("content")
             ?.filterIsInstance<Element>()
             ?.map {

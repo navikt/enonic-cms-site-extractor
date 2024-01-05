@@ -64,6 +64,7 @@ data class OpenSearchContentDocument(
     val versions: List<ContentVersionReference>,
     val locations: List<ContentLocation>?,
     val category: CategoryRefData?,
+    val binaryKeys: List<String>?,
 
     val meta: ContentMetaData,
 )

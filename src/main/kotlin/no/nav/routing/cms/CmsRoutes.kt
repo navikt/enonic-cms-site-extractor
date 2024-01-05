@@ -14,10 +14,11 @@ import no.nav.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
 import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 import no.nav.utils.jsonResponse
 import no.nav.utils.xmlResponse
+import java.util.*
 
 
 @Resource("content")
-private class Content() {
+private class Content {
     @Resource("{key}")
     class Get(val parent: Content = Content(), val key: Int)
 
@@ -29,7 +30,7 @@ private class Content() {
 }
 
 @Resource("version")
-private class Version() {
+private class Version {
     @Resource("{key}")
     class Get(val parent: Version = Version(), val key: Int)
 
@@ -51,6 +52,23 @@ private class Category(val key: Int, val depth: Int? = 1)
 
 @Resource("contentByCategory/{key}")
 private class ContentByCategory(val key: Int, val depth: Int? = null, val index: Int? = null, val count: Int? = null)
+
+@Resource("binary")
+private class Binary() {
+    @Resource("/document/{key}")
+    class Document(val parent: Binary = Binary(), val key: Int)
+
+    @Resource("/file/{key}")
+    class File(val parent: Binary = Binary(), val key: Int)
+
+    @Resource("/attachment")
+    class Attachment(
+        val parent: Binary = Binary(),
+        val contentKey: Int,
+        val binaryKey: Int,
+        val versionKey: Int
+    )
+}
 
 @Resource("build")
 private class Build {
@@ -154,6 +172,55 @@ fun Route.cmsClientRoutes() {
                 .build()
                 ?.getContentByCategory(it.key, it.depth, it.index, it.count)
         )
+    }
+
+    get<Binary.Document> {
+        xmlResponse(
+            call,
+            CmsClientBuilder(this@cmsClientRoutes.environment)
+                .build()
+                ?.getBinary(it.key)
+        )
+    }
+
+    get<Binary.File> {
+        val binaryDocument = CmsClientBuilder(this@cmsClientRoutes.environment)
+            .build()
+            ?.getBinary(it.key)
+            ?.rootElement
+
+        if (binaryDocument == null) {
+            call.response.status(HttpStatusCode.NotFound)
+            return@get call.respond("Binary not found!")
+        }
+
+        val filename = binaryDocument.getChildText("filename")
+        val data = binaryDocument.getChildText("data")
+
+        val decoded = Base64.getDecoder().decode(data)
+
+        call.response.header(
+            HttpHeaders.ContentDisposition,
+            ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, filename).toString()
+        )
+        call.respondBytes(decoded, ContentType.Application.Pdf)
+    }
+
+    get<Binary.Attachment> {
+        val file = CmsClientBuilder(this@cmsClientRoutes.environment)
+            .build()
+            ?.getAttachmentFile(it.contentKey, it.binaryKey, it.versionKey)
+
+        if (file == null) {
+            call.response.status(HttpStatusCode.NotFound)
+            return@get call.respond("Attachment not found!")
+        }
+
+        call.response.header(
+            HttpHeaders.ContentDisposition,
+            ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, "asdf").toString()
+        )
+        call.respondBytes(file)
     }
 
     get<Build.Category> {
