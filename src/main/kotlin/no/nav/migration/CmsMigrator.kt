@@ -14,7 +14,7 @@ import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 private val logger = KtorSimpleLogger("CmsContentMigrator")
 
 enum class CmsMigratorState {
-    NOT_STARTED, RUNNING, ABORTED, FINISHED
+    NOT_STARTED, RUNNING, ABORTED, FAILED, FINISHED
 }
 
 @Serializable
@@ -96,9 +96,13 @@ class CmsMigrator(
                     migrateVersion(params.key)
                 }
             }
-        } catch (e: CancellationException) {
-            logger.info("Aborting job for ${params.key}")
-            state = CmsMigratorState.ABORTED
+        } catch (e: Exception) {
+            if (e is CancellationException) {
+                logger.info("Job for ${params.key} was cancelled")
+            } else {
+                logger.error("Exception while running job for ${params.key} - ${e.message}")
+                state = CmsMigratorState.FAILED
+            }
             throw e
         }
 
@@ -107,6 +111,7 @@ class CmsMigrator(
     }
 
     suspend fun abort() {
+        state = CmsMigratorState.ABORTED
         logger.info("Sending cancel signal for ${params.key}")
         job?.cancelAndJoin()
     }

@@ -2,7 +2,7 @@ package no.nav.cms.client
 
 import io.ktor.client.*
 import io.ktor.client.call.*
-import io.ktor.client.engine.cio.*
+import io.ktor.client.engine.java.*
 import io.ktor.client.plugins.cookies.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
@@ -31,7 +31,7 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
 
     private val loginRedirectUrls: List<String> = listOf(loginUrl, cmsOrigin.plus(":443").plus(ADMIN_PATH))
 
-    private val httpClient: HttpClient = HttpClient(CIO) {
+    private val httpClient: HttpClient = HttpClient(Java) {
         install(Logging) {
             level = LogLevel.INFO
         }
@@ -146,14 +146,22 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
     }
 
     suspend fun getAttachmentData(binaryKey: Int, contentKey: Int, versionKey: Int): ByteArray? {
-        val response = requestWithLogin(attachmentUrl) {
-            url {
-                appendPathSegments(listOf(contentKey.toString(), "binary", binaryKey.toString()))
-                parameters.append("_version", versionKey.toString())
+        try {
+            val response = requestWithLogin(attachmentUrl) {
+                url {
+                    appendPathSegments(listOf(contentKey.toString(), "binary", binaryKey.toString()))
+                    parameters.append("_version", versionKey.toString())
+                }
             }
+
+            if (response.status == HttpStatusCode.OK) {
+                return response.body()
+            }
+        } catch (e: Exception) {
+            logger.info("Error fetching attachment: ${e.message}")
         }
 
-        return response.body()
+        return null
     }
 
     suspend fun renderContent(params: ContentRenderParams): String? {
