@@ -30,6 +30,18 @@ private class Migrate {
     class Version(val versionKey: Int)
 }
 
+@Resource("cancel")
+private class Cancel {
+    @Resource("category/{categoryKey}")
+    class Category(val parent: Cancel = Cancel(), val categoryKey: Int)
+
+    @Resource("content/{contentKey}")
+    class Content(val parent: Cancel = Cancel(), val contentKey: Int)
+
+    @Resource("version/versionKey}")
+    class Version(val parent: Cancel = Cancel(), val versionKey: Int)
+}
+
 private suspend fun migrationRequestHandler(
     migratorParams: CmsMigratorParams,
     call: ApplicationCall,
@@ -73,6 +85,13 @@ fun Route.migrationRoutes() {
             call,
             this@migrationRoutes.environment
         )
+    }
+
+    get<Cancel.Category> {
+        val didAbort = CmsMigratorFactory
+            .abortJob(it.categoryKey, CmsMigratorType.CATEGORY)
+
+        call.respond("Aborted? $didAbort")
     }
 
     get<Migrate.Content> {

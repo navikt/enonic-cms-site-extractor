@@ -15,15 +15,20 @@ data class ContentRenderParams(
     val page: String,
     val selectedunitkey: String,
     val menukey: String,
-    val menuitemkey: String,
+    val menuitemkey: String?,
     val pagetemplatekey: String
+)
+
+data class ContentLocationKeys(
+    val menuKey: String?,
+    val menuItemKey: String?,
+    val pageTemplateKey: String?,
 )
 
 class ContentRenderParamsBuilder(
     private val contentElement: Element,
     private val cmsClient: CmsClient
 ) {
-
     suspend fun build(): ContentRenderParams? {
         try {
             val contentKey = getContentKey()
@@ -50,19 +55,25 @@ class ContentRenderParamsBuilder(
                 return null
             }
 
-            val siteKey = getSiteKey()
+            val defaultLocationKeys = cmsClient.getDefaultContentLocationKeys(contentKey, versionKey, pageKey, unitKey)
+            if (defaultLocationKeys == null) {
+                logger.error("Failed to retrieve default location keys for content $contentKey (version: $versionKey)")
+                return null
+            }
+
+            val siteKey = getSiteKey() ?: defaultLocationKeys.menuKey
             if (siteKey == null) {
                 logger.error("No siteKey found for content $contentKey (version: $versionKey)")
                 return null
             }
 
-            val menuItemKey = getMenuItemKey()
+            val menuItemKey = getMenuItemKey() ?: defaultLocationKeys.menuItemKey
             if (menuItemKey == null) {
                 logger.error("No menuItemKey found for content $contentKey (version: $versionKey)")
                 return null
             }
 
-            val pageTemplateKey = getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
+            val pageTemplateKey = defaultLocationKeys.pageTemplateKey
             if (pageTemplateKey == null) {
                 logger.error("No pageTemplateKey found for content $contentKey (version: $versionKey)")
                 return null
@@ -126,21 +137,5 @@ class ContentRenderParamsBuilder(
         val contentTypeKey = this.getContentTypeKey() ?: return null
 
         return (contentTypeKey.toInt() + CT_KEY_PAGE_KEY_DELTA).toString()
-    }
-
-    private suspend fun getPageTemplateKey(
-        contentKey: String,
-        versionKey: String,
-        pageKey: String,
-        unitKey: String
-    ): String? {
-        val result = this.cmsClient
-            .getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
-
-        if (result == null) {
-            logger.info("Could not retrieve pageTemplateKey for $contentKey $versionKey $pageKey $unitKey")
-        }
-
-        return result
     }
 }

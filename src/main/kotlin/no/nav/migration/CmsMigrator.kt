@@ -1,6 +1,7 @@
 package no.nav.migration
 
 import io.ktor.util.logging.*
+import kotlinx.coroutines.*
 import no.nav.cms.client.CmsClient
 import no.nav.openSearch.OpenSearchClient
 import no.nav.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
@@ -18,27 +19,25 @@ class CmsMigrator(
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
 ) {
-    val errors = LinkedHashMap<Int, String>()
-    val results = LinkedHashMap<Int, String>()
+    private var job: Job? = null
+
+    private val errors = LinkedHashMap<Int, String>()
+    private val results = LinkedHashMap<Int, String>()
+
     var state = CmsMigratorState.NOT_STARTED
 
+    @OptIn(DelicateCoroutinesApi::class)
     suspend fun run(): String {
         if (state == CmsMigratorState.RUNNING) {
             return "Migrator for ${params.key} is already running"
         }
 
-        state = CmsMigratorState.RUNNING
-        errors.clear()
-        results.clear()
+        job = GlobalScope.launch {
+            runJob()
+        }
 
-        val response = when (params) {
+        val msg = when (params) {
             is CmsCategoryMigratorParams -> {
-                migrateCategory(
-                    params.key,
-                    params.withChildren ?: false,
-                    params.withContent ?: false,
-                    params.withVersions ?: false
-                )
                 "Started migrating category ${params.key} " +
                         "(with children: ${params.withChildren} - " +
                         "with content: ${params.withContent} - " +
@@ -46,29 +45,66 @@ class CmsMigrator(
             }
 
             is CmsContentMigratorParams -> {
-                migrateContent(
-                    params.key,
-                    params.withVersions ?: false
-                )
                 "Started migrating content ${params.key} " +
                         "(with versions: ${params.withVersions})"
             }
 
             is CmsVersionMigratorParams -> {
-                migrateVersion(params.key)
                 "Started migrating version ${params.key}"
             }
         }
 
-        return response
+        logger.info(msg)
+
+        return msg
     }
 
-    fun getErrors(): String {
-        return errors.toString()
+    fun abort(): Boolean {
+        if (job?.isActive != true) {
+            logger.info("Job for ${params.key} is not running")
+            return false
+        }
+
+        logger.info("Cancelling job for ${params.key}!")
+
+        job?.cancel()
+
+        logger.info("Job for ${params.key} cancelled!")
+
+        return true
     }
 
-    fun getResults(): String {
-        return results.toString()
+    private suspend fun runJob() {
+        state = CmsMigratorState.RUNNING
+
+        errors.clear()
+        results.clear()
+
+        when (params) {
+            is CmsCategoryMigratorParams -> {
+                migrateCategory(
+                    params.key,
+                    params.withChildren ?: false,
+                    params.withContent ?: false,
+                    params.withVersions ?: false
+                )
+            }
+
+            is CmsContentMigratorParams -> {
+                migrateContent(
+                    params.key,
+                    params.withVersions ?: false
+                )
+            }
+
+            is CmsVersionMigratorParams -> {
+                migrateVersion(params.key)
+            }
+        }
+
+        logger.info("Finished running job for ${params.key}")
+
+        state = CmsMigratorState.FINISHED
     }
 
     private fun logError(key: Int, msg: String) {

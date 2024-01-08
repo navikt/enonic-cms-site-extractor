@@ -8,10 +8,14 @@ import no.nav.openSearch.OpenSearchClientBuilder
 
 private val logger = KtorSimpleLogger("CmsMigratorFactory")
 
+enum class CmsMigratorType {
+    CATEGORY, CONTENT, VERSION
+}
+
 object CmsMigratorFactory {
-    private val categoryIndexers = HashMap<Int, CmsMigrator>()
-    private val contentIndexers = HashMap<Int, CmsMigrator>()
-    private val versionIndexers = HashMap<Int, CmsMigrator>()
+    private val categoryMigrators = HashMap<Int, CmsMigrator>()
+    private val contentMigrators = HashMap<Int, CmsMigrator>()
+    private val versionMigrators = HashMap<Int, CmsMigrator>()
 
     suspend fun createOrRetrieveMigrator(
         params: CmsMigratorParams,
@@ -19,9 +23,9 @@ object CmsMigratorFactory {
     ): CmsMigrator? {
         val key = params.key
         val migratorMap = when (params) {
-            is CmsCategoryMigratorParams -> categoryIndexers
-            is CmsContentMigratorParams -> contentIndexers
-            is CmsVersionMigratorParams -> versionIndexers
+            is CmsCategoryMigratorParams -> categoryMigrators
+            is CmsContentMigratorParams -> contentMigrators
+            is CmsVersionMigratorParams -> versionMigrators
         }
 
         val existingMigrator = migratorMap[key]
@@ -46,5 +50,20 @@ object CmsMigratorFactory {
         migratorMap[key] = migrator
 
         return migrator
+    }
+
+    fun abortJob(key: Int, type: CmsMigratorType): Boolean {
+        val migrator = when (type) {
+            CmsMigratorType.CATEGORY -> categoryMigrators
+            CmsMigratorType.CONTENT -> contentMigrators
+            CmsMigratorType.VERSION -> versionMigrators
+        }[key]
+
+        if (migrator == null) {
+            logger.info("No migration job found for $key of type ${type.name}")
+            return false
+        }
+
+        return migrator.abort()
     }
 }

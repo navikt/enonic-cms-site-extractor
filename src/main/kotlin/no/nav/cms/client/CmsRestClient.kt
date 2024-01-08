@@ -100,7 +100,22 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
         }
     }
 
-    suspend fun getPageTemplateKey(contentKey: String, versionKey: String, pageKey: String, unitKey: String): String? {
+    // Get the values of certain keys needed for rendering from the html of the preview selector
+    // in the admin UI. These keys can
+    private fun getValueFromParamInHtml(frameHtml: String, key: String): String? {
+        return Regex("""$key=(?<value>\d+)""")
+            .find(frameHtml)
+            ?.groups
+            ?.get("value")
+            ?.value
+    }
+
+    suspend fun getDefaultContentLocationKeys(
+        contentKey: String,
+        versionKey: String,
+        pageKey: String,
+        unitKey: String
+    ): ContentLocationKeys? {
         val response = requestWithLogin(adminUrl) {
             url {
                 parameters.append("op", "preview")
@@ -113,16 +128,21 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
         }
 
         if (response.status != HttpStatusCode.OK) {
+            logger.error("Could not retrieve location keys for $contentKey $versionKey $pageKey $unitKey")
             return null
         }
 
         val body = response.bodyAsText()
 
-        return Regex("""pagetemplatekey=(?<pageTemplateKey>\d+)""")
-            .find(body)
-            ?.groups
-            ?.get("pageTemplateKey")
-            ?.value
+        val pageTemplateKey = getValueFromParamInHtml(body, "pagetemplatekey")
+        val siteKey = getValueFromParamInHtml(body, "menukey")
+        val menuItemKey = getValueFromParamInHtml(body, "menuitemkey")
+
+        return ContentLocationKeys(
+            pageTemplateKey = pageTemplateKey,
+            menuKey = siteKey,
+            menuItemKey = menuItemKey,
+        )
     }
 
     suspend fun getAttachmentFile(contentKey: Int, binaryKey: Int, versionKey: Int): ByteArray? {
@@ -146,8 +166,11 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
                 parameters.append("page", params.page)
                 parameters.append("selectedunitkey", params.selectedunitkey)
                 parameters.append("menukey", params.menukey)
-                parameters.append("menuitemkey", params.menuitemkey)
                 parameters.append("pagetemplatekey", params.pagetemplatekey)
+
+                if (params.menuitemkey != null) {
+                    parameters.append("menuitemkey", params.menuitemkey)
+                }
             }
         }
 

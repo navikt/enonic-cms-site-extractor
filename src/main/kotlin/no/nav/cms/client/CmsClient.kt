@@ -145,8 +145,13 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
         return restClient.getAttachmentFile(contentKey, binaryKey, versionKey)
     }
 
-    suspend fun getPageTemplateKey(contentKey: String, versionKey: String, pageKey: String, unitKey: String): String? {
-        return restClient.getPageTemplateKey(contentKey, versionKey, pageKey, unitKey)
+    suspend fun getDefaultContentLocationKeys(
+        contentKey: String,
+        versionKey: String,
+        pageKey: String,
+        unitKey: String
+    ): ContentLocationKeys? {
+        return restClient.getDefaultContentLocationKeys(contentKey, versionKey, pageKey, unitKey)
     }
 
     suspend fun renderDocument(document: Document?): String? {
