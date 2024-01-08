@@ -9,6 +9,7 @@ import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.migration.*
+import no.nav.utils.jsonResponse
 
 
 private class Migrate {
@@ -42,7 +43,19 @@ private class Abort {
     class Version(val parent: Abort = Abort(), val versionKey: Int)
 }
 
-private suspend fun migrationRequestHandler(
+@Resource("status")
+private class Status {
+    @Resource("category/{categoryKey}")
+    class Category(val parent: Status = Status(), val categoryKey: Int)
+
+    @Resource("content/{contentKey}")
+    class Content(val parent: Status = Status(), val contentKey: Int)
+
+    @Resource("version/versionKey}")
+    class Version(val parent: Status = Status(), val versionKey: Int)
+}
+
+private suspend fun runMigrationHandler(
     migratorParams: CmsMigratorParams,
     call: ApplicationCall,
     environment: ApplicationEnvironment?
@@ -59,7 +72,7 @@ private suspend fun migrationRequestHandler(
         return
     }
 
-    if (migrator.state == CmsMigratorState.RUNNING) {
+    if (migrator.getStatus().state == CmsMigratorState.RUNNING) {
         call.response.status(HttpStatusCode.Forbidden)
         call.respond("Migrator for ${migrator.params.key} is already running")
         return
@@ -69,7 +82,7 @@ private suspend fun migrationRequestHandler(
     call.respond(response)
 }
 
-private suspend fun abortMigrationHandler(
+private suspend fun abortHandler(
     key: Int,
     type: CmsMigratorType,
     call: ApplicationCall,
@@ -82,13 +95,26 @@ private suspend fun abortMigrationHandler(
     }
 }
 
+private suspend fun getStatusHandler(
+    key: Int,
+    type: CmsMigratorType,
+    call: ApplicationCall,
+) {
+    val result = CmsMigratorFactory.getStatus(key, type)
+    if (result == null) {
+        call.respond("No migration job found for ${type.name} ${key} - The job may not be running")
+    } else {
+        jsonResponse(call, result, "Failed to get status for ${type.name} $key")
+    }
+}
+
 fun Route.migrationRoutes() {
     install(ContentNegotiation) {
         json()
     }
 
     get<Migrate.Category> {
-        migrationRequestHandler(
+        runMigrationHandler(
             CmsCategoryMigratorParams(
                 key = it.categoryKey,
                 withChildren = it.withChildren,
@@ -101,7 +127,7 @@ fun Route.migrationRoutes() {
     }
 
     get<Migrate.Content> {
-        migrationRequestHandler(
+        runMigrationHandler(
             CmsContentMigratorParams(
                 key = it.contentKey,
                 withVersions = it.withVersions
@@ -112,7 +138,7 @@ fun Route.migrationRoutes() {
     }
 
     get<Migrate.Version> {
-        migrationRequestHandler(
+        runMigrationHandler(
             CmsVersionMigratorParams(it.versionKey),
             call,
             this@migrationRoutes.environment
@@ -120,14 +146,26 @@ fun Route.migrationRoutes() {
     }
 
     get<Abort.Category> {
-        abortMigrationHandler(it.categoryKey, CmsMigratorType.CATEGORY, call)
+        abortHandler(it.categoryKey, CmsMigratorType.CATEGORY, call)
     }
 
     get<Abort.Content> {
-        abortMigrationHandler(it.contentKey, CmsMigratorType.CONTENT, call)
+        abortHandler(it.contentKey, CmsMigratorType.CONTENT, call)
     }
 
     get<Abort.Version> {
-        abortMigrationHandler(it.versionKey, CmsMigratorType.VERSION, call)
+        abortHandler(it.versionKey, CmsMigratorType.VERSION, call)
+    }
+
+    get<Status.Category> {
+        getStatusHandler(it.categoryKey, CmsMigratorType.CATEGORY, call)
+    }
+
+    get<Status.Content> {
+        getStatusHandler(it.contentKey, CmsMigratorType.CONTENT, call)
+    }
+
+    get<Status.Version> {
+        getStatusHandler(it.versionKey, CmsMigratorType.VERSION, call)
     }
 }

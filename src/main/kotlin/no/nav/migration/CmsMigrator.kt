@@ -2,17 +2,25 @@ package no.nav.migration
 
 import io.ktor.util.logging.*
 import kotlinx.coroutines.*
+import kotlinx.serialization.Serializable
 import no.nav.cms.client.CmsClient
 import no.nav.openSearch.OpenSearchClient
 import no.nav.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
 import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 
 
+private val logger = KtorSimpleLogger("CmsContentMigrator")
+
 enum class CmsMigratorState {
     NOT_STARTED, RUNNING, ABORTED, FINISHED
 }
 
-private val logger = KtorSimpleLogger("CmsContentMigrator")
+@Serializable
+data class CmsMigratorStatus(
+    val state: CmsMigratorState,
+    val errors: LinkedHashMap<Int, String>,
+    val results: LinkedHashMap<Int, String>
+)
 
 class CmsMigrator(
     val params: CmsMigratorParams,
@@ -21,10 +29,10 @@ class CmsMigrator(
 ) {
     private var job: Job? = null
 
+    private var state = CmsMigratorState.NOT_STARTED
+
     private val errors = LinkedHashMap<Int, String>()
     private val results = LinkedHashMap<Int, String>()
-
-    var state = CmsMigratorState.NOT_STARTED
 
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun run(): String {
@@ -55,7 +63,6 @@ class CmsMigrator(
         }
 
         logger.info(msg)
-
         return msg
     }
 
@@ -102,6 +109,10 @@ class CmsMigrator(
         job?.cancelAndJoin()
     }
 
+    fun getStatus(): CmsMigratorStatus {
+        return CmsMigratorStatus(state, errors, results)
+    }
+
     private fun logError(key: Int, msg: String) {
         errors[key] = msg
         logger.error("[$key]: $msg")
@@ -137,7 +148,7 @@ class CmsMigrator(
 
         if (withChildren) {
             categoryDocument.categories?.forEach {
-                migrateCategory(it.key.toInt(), withChildren, withContent, withVersions)
+                migrateCategory(it.key.toInt(), true, withContent, withVersions)
             }
         }
     }

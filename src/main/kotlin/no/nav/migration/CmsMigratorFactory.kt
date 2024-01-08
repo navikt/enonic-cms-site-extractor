@@ -68,4 +68,19 @@ object CmsMigratorFactory {
 
         return true
     }
+
+    fun getStatus(key: Int, type: CmsMigratorType): CmsMigratorStatus? {
+        val migrator = when (type) {
+            CmsMigratorType.CATEGORY -> categoryMigrators
+            CmsMigratorType.CONTENT -> contentMigrators
+            CmsMigratorType.VERSION -> versionMigrators
+        }[key]
+
+        if (migrator == null) {
+            logger.info("No migration job found for $key of type ${type.name}")
+            return null
+        }
+
+        return migrator.getStatus()
+    }
 }
