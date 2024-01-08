@@ -40,7 +40,7 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
             versions = getVersionReferences(contentElement),
             locations = getLocations(contentElement),
             category = getCategory(contentElement),
-            binaryKeys = listOf(""),
+            binaries = listOf(""),
             meta = getMetaData(contentElement),
             html = html,
             xmlAsString = documentXml,

@@ -34,7 +34,6 @@ private val meta: IndexMappings = {
     date(ContentMetaData::publishFrom)
     date(ContentMetaData::publishTo)
 
-
     objField(ContentMetaData::owner, null, cmsUserIndexMappings)
     objField(ContentMetaData::modifier, null, cmsUserIndexMappings)
 }
@@ -47,6 +46,12 @@ private val locations: IndexMappings = {
     keyword(ContentLocation::menuItemPath)
     text(ContentLocation::menuItemDisplayName)
     bool(ContentLocation::home)
+}
+
+private val contentBinaryReference: IndexMappings = {
+    keyword(ContentBinaryReference::key)
+    text(ContentBinaryReference::filename)
+    number<Int>(ContentBinaryReference::filesize)
 }
 
 val contentIndexMappings: IndexMappings = {
@@ -63,7 +68,7 @@ val contentIndexMappings: IndexMappings = {
     objField(OpenSearchContentDocument::versions, null, versions)
     objField(OpenSearchContentDocument::locations, null, locations)
     objField(OpenSearchContentDocument::category, null, categoryRefIndexMappings)
-    keyword(OpenSearchContentDocument::binaryKeys)
+    objField(OpenSearchContentDocument::binaries, null, contentBinaryReference)
 
     objField(OpenSearchContentDocument::meta, null, meta)
 }

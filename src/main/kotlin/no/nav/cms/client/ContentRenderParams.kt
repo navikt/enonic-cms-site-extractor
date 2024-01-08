@@ -15,8 +15,8 @@ data class ContentRenderParams(
     val page: String,
     val selectedunitkey: String,
     val menukey: String,
+    val pagetemplatekey: String,
     val menuitemkey: String?,
-    val pagetemplatekey: String
 )
 
 data class ContentLocationKeys(
@@ -67,16 +67,15 @@ class ContentRenderParamsBuilder(
                 return null
             }
 
-            val menuItemKey = getMenuItemKey() ?: defaultLocationKeys.menuItemKey
-            if (menuItemKey == null) {
-                logger.error("No menuItemKey found for content $contentKey (version: $versionKey)")
-                return null
-            }
-
             val pageTemplateKey = defaultLocationKeys.pageTemplateKey
             if (pageTemplateKey == null) {
                 logger.error("No pageTemplateKey found for content $contentKey (version: $versionKey)")
                 return null
+            }
+
+            val menuItemKey = getMenuItemKey() ?: defaultLocationKeys.menuItemKey
+            if (menuItemKey == null) {
+                logger.info("No menuItemKey found for content $contentKey (version: $versionKey)")
             }
 
             return ContentRenderParams(
@@ -85,8 +84,8 @@ class ContentRenderParamsBuilder(
                 page = pageKey,
                 selectedunitkey = unitKey,
                 menukey = siteKey,
+                pagetemplatekey = pageTemplateKey,
                 menuitemkey = menuItemKey,
-                pagetemplatekey = pageTemplateKey
             )
         } catch (e: Exception) {
             logger.error("Error building ContentRenderParams: ${e.message}")

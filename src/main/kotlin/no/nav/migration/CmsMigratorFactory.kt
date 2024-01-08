@@ -52,13 +52,16 @@ object CmsMigratorFactory {
         return migrator
     }
 
-    suspend fun abortJob(key: Int, type: CmsMigratorType): Boolean {
-        val migrator = when (type) {
+    private fun getMigrator(key: Int, type: CmsMigratorType): CmsMigrator? {
+        return when (type) {
             CmsMigratorType.CATEGORY -> categoryMigrators
             CmsMigratorType.CONTENT -> contentMigrators
             CmsMigratorType.VERSION -> versionMigrators
         }[key]
+    }
 
+    suspend fun abortJob(key: Int, type: CmsMigratorType): Boolean {
+        val migrator = getMigrator(key, type)
         if (migrator == null) {
             logger.info("No migration job found for $key of type ${type.name}")
             return false
@@ -70,12 +73,7 @@ object CmsMigratorFactory {
     }
 
     fun getStatus(key: Int, type: CmsMigratorType): CmsMigratorStatus? {
-        val migrator = when (type) {
-            CmsMigratorType.CATEGORY -> categoryMigrators
-            CmsMigratorType.CONTENT -> contentMigrators
-            CmsMigratorType.VERSION -> versionMigrators
-        }[key]
-
+        val migrator = getMigrator(key, type)
         if (migrator == null) {
             logger.info("No migration job found for $key of type ${type.name}")
             return null

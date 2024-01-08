@@ -17,6 +17,13 @@ data class ContentVersionReference(
 )
 
 @Serializable
+data class ContentBinaryReference(
+    val key: String,
+    val filename: String,
+    val filesize: Int
+)
+
+@Serializable
 data class ContentLocation(
     val siteKey: String?,
     val type: String?,
@@ -64,7 +71,7 @@ data class OpenSearchContentDocument(
     val versions: List<ContentVersionReference>,
     val locations: List<ContentLocation>?,
     val category: CategoryRefData?,
-    val binaryKeys: List<String>?,
+    val binaries: List<ContentBinaryReference>?,
 
     val meta: ContentMetaData,
 )
