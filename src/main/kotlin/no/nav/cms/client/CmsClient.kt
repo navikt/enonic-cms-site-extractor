@@ -17,6 +17,8 @@ import io.ktor.util.logging.*
 import no.nav.cms.utils.getContentElement
 import org.jdom.Document
 import org.jdom.Element
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 
 private const val RPC_PATH = "/rpc/bin"
@@ -141,8 +143,11 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
         return rpcErrorHandler { rpcClient.getBinary(params) }
     }
 
-    suspend fun getAttachmentFile(contentKey: Int, binaryKey: Int, versionKey: Int): ByteArray? {
-        return restClient.getAttachmentFile(contentKey, binaryKey, versionKey)
+    @OptIn(ExperimentalEncodingApi::class)
+    suspend fun getBinaryDataAsBase64(binaryKey: Int, contentKey: Int, versionKey: Int): String? {
+        val rawData = restClient.getAttachmentData(binaryKey, contentKey, versionKey) ?: return null
+
+        return Base64.encode(rawData)
     }
 
     suspend fun getDefaultContentLocationKeys(

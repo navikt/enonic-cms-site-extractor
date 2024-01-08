@@ -27,7 +27,7 @@ private class Migrate {
         val withVersions: Boolean? = false
     )
 
-    @Resource("version/versionKey}")
+    @Resource("version/{versionKey}")
     class Version(val versionKey: Int)
 }
 

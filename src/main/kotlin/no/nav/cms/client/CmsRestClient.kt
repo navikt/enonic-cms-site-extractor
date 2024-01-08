@@ -145,7 +145,7 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
         )
     }
 
-    suspend fun getAttachmentFile(contentKey: Int, binaryKey: Int, versionKey: Int): ByteArray? {
+    suspend fun getAttachmentData(binaryKey: Int, contentKey: Int, versionKey: Int): ByteArray? {
         val response = requestWithLogin(attachmentUrl) {
             url {
                 appendPathSegments(listOf(contentKey.toString(), "binary", binaryKey.toString()))

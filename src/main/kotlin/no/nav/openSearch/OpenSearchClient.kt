@@ -3,6 +3,8 @@ package no.nav.openSearch
 import com.jillesvangurp.ktsearch.*
 import io.ktor.util.logging.*
 import no.nav.openSearch.documents.IndexMappings
+import no.nav.openSearch.documents.binary.OpenSearchBinaryDocument
+import no.nav.openSearch.documents.binary.binaryIndexMappings
 import no.nav.openSearch.documents.category.OpenSearchCategoryDocument
 import no.nav.openSearch.documents.category.categoryIndexMappings
 import no.nav.openSearch.documents.content.OpenSearchContentDocument
@@ -16,11 +18,12 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
 
     private val contentIndexName: String = "${indexPrefix}_content"
     private val categoriesIndexName: String = "${indexPrefix}_categories"
+    private val binariesIndexName: String = "${indexPrefix}_binaries"
 
     suspend fun initIndices(): OpenSearchClient {
         createIndexIfNotExists(contentIndexName, contentIndexMappings)
         createIndexIfNotExists(categoriesIndexName, categoryIndexMappings)
-
+        createIndexIfNotExists(binariesIndexName, binaryIndexMappings)
         return this
     }
 
@@ -45,5 +48,9 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
 
     suspend fun indexCategoryDocument(document: OpenSearchCategoryDocument): DocumentIndexResponse {
         return this.client.indexDocument(target = categoriesIndexName, document = document, id = document.key)
+    }
+
+    suspend fun indexBinaryDocument(document: OpenSearchBinaryDocument): DocumentIndexResponse {
+        return this.client.indexDocument(target = binariesIndexName, document = document, id = document.binaryKey)
     }
 }

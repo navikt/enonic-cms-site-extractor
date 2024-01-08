@@ -8,11 +8,8 @@ val binaryIndexMappings: IndexMappings = {
     keyword(OpenSearchBinaryDocument::contentKey)
     keyword(OpenSearchBinaryDocument::versionKey)
 
-    bool(OpenSearchBinaryDocument::isCurrentVersion)
-
     text(OpenSearchBinaryDocument::filename)
     number<Int>(OpenSearchBinaryDocument::filesize)
-    date(OpenSearchBinaryDocument::timestamp)
 
     field(OpenSearchBinaryDocument::data, "binary")
 }

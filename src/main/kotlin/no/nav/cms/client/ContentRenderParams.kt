@@ -63,13 +63,13 @@ class ContentRenderParamsBuilder(
 
             val siteKey = getSiteKey() ?: defaultLocationKeys.menuKey
             if (siteKey == null) {
-                logger.error("No siteKey found for content $contentKey (version: $versionKey)")
+                logger.info("No siteKey found for content $contentKey (version: $versionKey)")
                 return null
             }
 
             val pageTemplateKey = defaultLocationKeys.pageTemplateKey
             if (pageTemplateKey == null) {
-                logger.error("No pageTemplateKey found for content $contentKey (version: $versionKey)")
+                logger.info("No pageTemplateKey found for content $contentKey (version: $versionKey)")
                 return null
             }
 

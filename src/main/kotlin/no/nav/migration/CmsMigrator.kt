@@ -5,7 +5,9 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import no.nav.cms.client.CmsClient
 import no.nav.openSearch.OpenSearchClient
+import no.nav.openSearch.documents.binary.OpenSearchBinaryDocumentBuilder
 import no.nav.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
+import no.nav.openSearch.documents.content.OpenSearchContentDocument
 import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 
 
@@ -138,7 +140,10 @@ class CmsMigrator(
 
         val result = openSearchClient.indexCategoryDocument(categoryDocument)
 
-        logResult(categoryKey, "Result for category $categoryKey to ${result.index}: ${result.result}")
+        logResult(
+            categoryKey,
+            "Result for category $categoryKey to ${result.index}: ${result.result}"
+        )
 
         if (withContent) {
             categoryDocument.contents?.forEach {
@@ -163,7 +168,12 @@ class CmsMigrator(
 
         val result = openSearchClient.indexContentDocument(contentDocument)
 
-        logResult(contentKey, "Result for content $contentKey to ${result.index}: ${result.result}")
+        logResult(
+            contentKey,
+            "Result for content $contentKey to ${result.index}: ${result.result}"
+        )
+
+        migrateBinaries(contentDocument)
 
         if (withVersions) {
             contentDocument.versions.forEach {
@@ -178,12 +188,50 @@ class CmsMigrator(
         val contentVersionDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromVersion(versionKey)
 
         if (contentVersionDocument == null) {
-            logError(versionKey, "Failed to create content document with version key $versionKey")
+            logError(
+                versionKey,
+                "Failed to create content document with version key $versionKey"
+            )
             return
         }
 
         val result = openSearchClient.indexContentDocument(contentVersionDocument)
 
         logResult(versionKey, "Result for content version $versionKey to ${result.index}: ${result.result}")
+
+        migrateBinaries(contentVersionDocument)
+    }
+
+    private suspend fun migrateBinaries(contentDocument: OpenSearchContentDocument) {
+        val binaryRefs = contentDocument.binaries ?: return
+
+        val contentKey = contentDocument.contentKey.toInt()
+        val versionKey = contentDocument.versionKey.toInt()
+
+        binaryRefs.forEach {
+            val binaryDocument = OpenSearchBinaryDocumentBuilder(cmsClient)
+                .build(
+                    it,
+                    contentKey = contentKey,
+                    versionKey = versionKey
+                )
+
+            val binaryKey = it.key.toInt()
+
+            if (binaryDocument == null) {
+                logError(
+                    binaryKey,
+                    "Failed to create binary document with key $binaryKey for content $contentKey ($versionKey)"
+                )
+                return
+            }
+
+            val result = openSearchClient.indexBinaryDocument(binaryDocument)
+
+            logResult(
+                binaryKey,
+                "Result for binary with key $binaryKey for content $contentKey ($versionKey): ${result.result}"
+            )
+        }
     }
 }

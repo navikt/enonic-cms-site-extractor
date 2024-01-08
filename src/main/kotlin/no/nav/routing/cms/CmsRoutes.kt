@@ -58,11 +58,16 @@ private class Binary() {
     @Resource("/document/{key}")
     class Document(val parent: Binary = Binary(), val key: Int)
 
-    @Resource("/file/{key}")
-    class File(val parent: Binary = Binary(), val key: Int)
+    @Resource("/file")
+    class File(
+        val parent: Binary = Binary(),
+        val contentKey: Int,
+        val binaryKey: Int,
+        val versionKey: Int
+    )
 
-    @Resource("/attachment")
-    class Attachment(
+    @Resource("/encoded")
+    class Encoded(
         val parent: Binary = Binary(),
         val contentKey: Int,
         val binaryKey: Int,
@@ -184,43 +189,36 @@ fun Route.cmsClientRoutes() {
     }
 
     get<Binary.File> {
-        val binaryDocument = CmsClientBuilder(this@cmsClientRoutes.environment)
+        val binaryData = CmsClientBuilder(this@cmsClientRoutes.environment)
             .build()
-            ?.getBinary(it.key)
-            ?.rootElement
+            ?.getBinaryDataAsBase64(it.binaryKey, it.contentKey, it.versionKey)
 
-        if (binaryDocument == null) {
+        if (binaryData == null) {
             call.response.status(HttpStatusCode.NotFound)
             return@get call.respond("Binary not found!")
         }
 
-        val filename = binaryDocument.getChildText("filename")
-        val data = binaryDocument.getChildText("data")
-
-        val decoded = Base64.getDecoder().decode(data)
+        val decoded = Base64.getDecoder().decode(binaryData)
 
         call.response.header(
             HttpHeaders.ContentDisposition,
-            ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, filename).toString()
+            ContentDisposition.Attachment.toString()
         )
-        call.respondBytes(decoded, ContentType.Application.Pdf)
+
+        call.respondBytes(decoded)
     }
 
-    get<Binary.Attachment> {
+    get<Binary.Encoded> {
         val file = CmsClientBuilder(this@cmsClientRoutes.environment)
             .build()
-            ?.getAttachmentFile(it.contentKey, it.binaryKey, it.versionKey)
+            ?.getBinaryDataAsBase64(it.binaryKey, it.contentKey, it.versionKey)
 
         if (file == null) {
             call.response.status(HttpStatusCode.NotFound)
             return@get call.respond("Attachment not found!")
         }
 
-        call.response.header(
-            HttpHeaders.ContentDisposition,
-            ContentDisposition.Attachment.withParameter(ContentDisposition.Parameters.FileName, "asdf").toString()
-        )
-        call.respondBytes(file)
+        call.respond(file)
     }
 
     get<Build.Category> {
