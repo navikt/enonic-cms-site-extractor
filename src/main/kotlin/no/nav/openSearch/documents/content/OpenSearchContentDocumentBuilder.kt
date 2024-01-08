@@ -40,7 +40,7 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
             versions = getVersionReferences(contentElement),
             locations = getLocations(contentElement),
             category = getCategory(contentElement),
-            binaries = listOf(""),
+            binaries = getBinaryReferences(contentElement),
             meta = getMetaData(contentElement),
             html = html,
             xmlAsString = documentXml,
@@ -76,12 +76,12 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
         )
     }
 
-    private fun getLocations(element: Element): List<ContentLocation> {
+    private fun getLocations(element: Element): List<ContentLocation>? {
         return element
             .getChild("location")
-            .getChildren("site")
-            .filterIsInstance<Element>()
-            .flatMap { site ->
+            ?.getChildren("site")
+            ?.filterIsInstance<Element>()
+            ?.flatMap { site ->
                 val siteKey = site.getAttributeValue("key")
 
                 site.getChildren("contentlocation").filterIsInstance<Element>().map { location ->
@@ -112,6 +112,20 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
                     title = it.getChildText("title"),
                     comment = it.getChildText("comment"),
                     modifier = transformToCmsUser(it.getChild("modifier"))
+                )
+            }
+    }
+
+    private fun getBinaryReferences(element: Element): List<ContentBinaryReference>? {
+        return element
+            .getChild("binaries")
+            ?.getChildren("binary")
+            ?.filterIsInstance<Element>()
+            ?.map {
+                ContentBinaryReference(
+                    key = it.getAttributeValue("key"),
+                    filename = it.getAttributeValue("filename"),
+                    filesize = it.getAttributeValue("filesize").toInt()
                 )
             }
     }
