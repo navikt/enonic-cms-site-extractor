@@ -30,16 +30,16 @@ private class Migrate {
     class Version(val versionKey: Int)
 }
 
-@Resource("cancel")
-private class Cancel {
+@Resource("abort")
+private class Abort {
     @Resource("category/{categoryKey}")
-    class Category(val parent: Cancel = Cancel(), val categoryKey: Int)
+    class Category(val parent: Abort = Abort(), val categoryKey: Int)
 
     @Resource("content/{contentKey}")
-    class Content(val parent: Cancel = Cancel(), val contentKey: Int)
+    class Content(val parent: Abort = Abort(), val contentKey: Int)
 
     @Resource("version/versionKey}")
-    class Version(val parent: Cancel = Cancel(), val versionKey: Int)
+    class Version(val parent: Abort = Abort(), val versionKey: Int)
 }
 
 private suspend fun migrationRequestHandler(
@@ -69,6 +69,19 @@ private suspend fun migrationRequestHandler(
     call.respond(response)
 }
 
+private suspend fun abortMigrationHandler(
+    key: Int,
+    type: CmsMigratorType,
+    call: ApplicationCall,
+) {
+    val result = CmsMigratorFactory.abortJob(key, type)
+    if (!result) {
+        call.respond("Could not abort migration job for ${type.name} ${key} - The job may not be running")
+    } else {
+        call.respond("Aborted migration job for ${type.name} ${key}")
+    }
+}
+
 fun Route.migrationRoutes() {
     install(ContentNegotiation) {
         json()
@@ -85,13 +98,6 @@ fun Route.migrationRoutes() {
             call,
             this@migrationRoutes.environment
         )
-    }
-
-    get<Cancel.Category> {
-        val didAbort = CmsMigratorFactory
-            .abortJob(it.categoryKey, CmsMigratorType.CATEGORY)
-
-        call.respond("Aborted? $didAbort")
     }
 
     get<Migrate.Content> {
@@ -111,5 +117,17 @@ fun Route.migrationRoutes() {
             call,
             this@migrationRoutes.environment
         )
+    }
+
+    get<Abort.Category> {
+        abortMigrationHandler(it.categoryKey, CmsMigratorType.CATEGORY, call)
+    }
+
+    get<Abort.Content> {
+        abortMigrationHandler(it.contentKey, CmsMigratorType.CONTENT, call)
+    }
+
+    get<Abort.Version> {
+        abortMigrationHandler(it.versionKey, CmsMigratorType.VERSION, call)
     }
 }

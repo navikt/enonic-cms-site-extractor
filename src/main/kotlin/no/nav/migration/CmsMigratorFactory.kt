@@ -52,7 +52,7 @@ object CmsMigratorFactory {
         return migrator
     }
 
-    fun abortJob(key: Int, type: CmsMigratorType): Boolean {
+    suspend fun abortJob(key: Int, type: CmsMigratorType): Boolean {
         val migrator = when (type) {
             CmsMigratorType.CATEGORY -> categoryMigrators
             CmsMigratorType.CONTENT -> contentMigrators
@@ -64,6 +64,8 @@ object CmsMigratorFactory {
             return false
         }
 
-        return migrator.abort()
+        migrator.abort()
+
+        return true
     }
 }

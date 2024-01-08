@@ -59,52 +59,47 @@ class CmsMigrator(
         return msg
     }
 
-    fun abort(): Boolean {
-        if (job?.isActive != true) {
-            logger.info("Job for ${params.key} is not running")
-            return false
-        }
-
-        logger.info("Cancelling job for ${params.key}!")
-
-        job?.cancel()
-
-        logger.info("Job for ${params.key} cancelled!")
-
-        return true
-    }
-
     private suspend fun runJob() {
         state = CmsMigratorState.RUNNING
 
         errors.clear()
         results.clear()
 
-        when (params) {
-            is CmsCategoryMigratorParams -> {
-                migrateCategory(
-                    params.key,
-                    params.withChildren ?: false,
-                    params.withContent ?: false,
-                    params.withVersions ?: false
-                )
-            }
+        try {
+            when (params) {
+                is CmsCategoryMigratorParams -> {
+                    migrateCategory(
+                        params.key,
+                        params.withChildren ?: false,
+                        params.withContent ?: false,
+                        params.withVersions ?: false
+                    )
+                }
 
-            is CmsContentMigratorParams -> {
-                migrateContent(
-                    params.key,
-                    params.withVersions ?: false
-                )
-            }
+                is CmsContentMigratorParams -> {
+                    migrateContent(
+                        params.key,
+                        params.withVersions ?: false
+                    )
+                }
 
-            is CmsVersionMigratorParams -> {
-                migrateVersion(params.key)
+                is CmsVersionMigratorParams -> {
+                    migrateVersion(params.key)
+                }
             }
+        } catch (e: CancellationException) {
+            logger.info("Aborting job for ${params.key}")
+            state = CmsMigratorState.ABORTED
+            throw e
         }
 
         logger.info("Finished running job for ${params.key}")
-
         state = CmsMigratorState.FINISHED
+    }
+
+    suspend fun abort() {
+        logger.info("Sending cancel signal for ${params.key}")
+        job?.cancelAndJoin()
     }
 
     private fun logError(key: Int, msg: String) {
