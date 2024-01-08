@@ -18,7 +18,7 @@ fun parseDateTime(datetime: String?): String? {
             .parse(datetime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm[:ss][.S][S][S]"))
             .toString()
     } catch (e: DateTimeParseException) {
-        logger.error("Failed to parse datetime string $datetime - ${e.message}")
+        logger.error("Failed to parse datetime string \"$datetime\" - ${e.message}")
         return null
     }
 }
