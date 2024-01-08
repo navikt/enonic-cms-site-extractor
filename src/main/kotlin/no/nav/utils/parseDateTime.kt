@@ -9,7 +9,7 @@ import java.time.format.DateTimeParseException
 private val logger = KtorSimpleLogger("parseDateTime")
 
 fun parseDateTime(datetime: String?): String? {
-    if (datetime == null) {
+    if (datetime == null || datetime == "") {
         return null
     }
 
