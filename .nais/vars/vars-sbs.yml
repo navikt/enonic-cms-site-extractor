@@ -3,7 +3,7 @@ cmsHost: cmsadmin.oera.no
 ingress: https://cms-migrator-sbs.intern.nav.no
 secret: cms-migrator-sbs
 env:
-  - name: OPENSEARCH_INDEXPREFIX
+  - name: OPEN_SEARCH_INDEXPREFIX
     value: cmssbs
   - name: CMS_URL
     value: https://cmsadmin.oera.no

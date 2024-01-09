@@ -2,6 +2,7 @@ package no.nav.openSearch
 
 import com.jillesvangurp.ktsearch.KtorRestClient
 import com.jillesvangurp.ktsearch.SearchClient
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.util.logging.*
 import no.nav.utils.getConfigVar
@@ -10,25 +11,28 @@ import no.nav.utils.getConfigVar
 private val logger = KtorSimpleLogger("OpenSearchClientBuilder")
 
 class OpenSearchClientBuilder(environment: ApplicationEnvironment?) {
-    private val host = getConfigVar("opensearch.host", environment)
-    private val port = getConfigVar("opensearch.port", environment)?.toInt()
+    private val uri = getConfigVar("opensearch.uri", environment)
     private val user = getConfigVar("opensearch.user", environment)
     private val password = getConfigVar("opensearch.password", environment)
     private val indexPrefix = getConfigVar("opensearch.indexPrefix", environment)
 
     suspend fun build(): OpenSearchClient? {
-        if (host == null || port == null || user == null || password == null || indexPrefix == null) {
-            logger.error("OpenSearch service parameters not found")
+        if (uri == null || user == null || password == null || indexPrefix == null) {
+            logger.error("OpenSearch config variables not found")
             return null
         }
 
+        val url = URLBuilder(uri)
+
+        logger.info("Opensearch url: ${url.protocol}${url.host}:${url.port}")
+
         val searchClient = SearchClient(
             KtorRestClient(
-                host = host,
-                port = port,
+                host = url.host,
+                port = url.port,
                 user = user,
                 password = password,
-                https = true,
+                https = url.protocol == URLProtocol.HTTPS,
             )
         )
 
