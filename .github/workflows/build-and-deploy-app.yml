@@ -45,6 +45,6 @@ jobs:
         uses: nais/deploy/actions/deploy@v2
         env:
           CLUSTER: prod-gcp
-          RESOURCE: ./nais/app.yml
+          RESOURCE: .nais/app.yml
           VAR: image=${{steps.docker-push.outputs.image}}
           VARS: .nais/vars/vars-${{ inputs.cmsEnv }}.yml
