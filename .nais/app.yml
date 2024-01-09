@@ -5,6 +5,8 @@ metadata:
   namespace: personbruker
   labels:
     team: personbruker
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
 spec:
   image: {{image}}
   port: 8081
