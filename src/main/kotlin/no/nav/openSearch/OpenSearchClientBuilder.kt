@@ -24,7 +24,7 @@ class OpenSearchClientBuilder(environment: ApplicationEnvironment?) {
 
         val url = URLBuilder(uri)
 
-        logger.info("Opensearch url: ${url.protocol}${url.host}:${url.port}")
+        logger.info("Opensearch url: ${url.protocol.name}${url.host}:${url.port}")
 
         val searchClient = SearchClient(
             KtorRestClient(
@@ -32,7 +32,7 @@ class OpenSearchClientBuilder(environment: ApplicationEnvironment?) {
                 port = url.port,
                 user = user,
                 password = password,
-                https = url.protocol == URLProtocol.HTTPS,
+                https = url.protocol.name == "https",
             )
         )
 
