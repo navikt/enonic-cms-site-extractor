@@ -1,7 +1,7 @@
 apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
-  name: cms-migrator-sbs
+  name: {{appName}}
   namespace: personbruker
   labels:
     team: personbruker
@@ -27,7 +27,7 @@ spec:
   {{/each}}
   openSearch:
     access: readwrite
-    instance: opensearch-personbruker-enonic-cms-archive
+    instance: enonic-cms-archive
   replicas:
     min: 1
     max: 1
