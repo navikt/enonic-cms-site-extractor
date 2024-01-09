@@ -1,0 +1,9 @@
+appName: cms-migrator-sbs
+cmsHost: cmsadmin.oera.no
+ingress: https://cms-migrator-sbs.intern.nav.no
+instanceSecret: cms-migrator-sbs
+env:
+  - name: OPENSEARCH_INDEXPREFIX
+    value: cmssbs
+  - name: CMS_URL
+    value: https://cmsadmin.oera.no

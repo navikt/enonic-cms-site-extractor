@@ -54,7 +54,7 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
     }
 
     private suspend fun login(): HttpResponse {
-        val response = httpClient.post(loginUrl) {
+        return httpClient.post(loginUrl) {
             contentType(ContentType.Application.FormUrlEncoded)
 
             headers {
@@ -67,8 +67,6 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
                 append("login", "true")
             }))
         }
-
-        return response
     }
 
     private suspend fun requestWithLogin(

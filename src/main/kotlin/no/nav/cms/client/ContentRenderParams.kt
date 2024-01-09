@@ -30,67 +30,62 @@ class ContentRenderParamsBuilder(
     private val cmsClient: CmsClient
 ) {
     suspend fun build(): ContentRenderParams? {
-        try {
-            val contentKey = getContentKey()
-            if (contentKey == null) {
-                logger.error("No contentKey found for provided element ${xmlToString(contentElement)}")
-                return null
-            }
-
-            val versionKey = getVersionKey()
-            if (versionKey == null) {
-                logger.error("No versionKey found for content $contentKey")
-                return null
-            }
-
-            val pageKey = getPageKey()
-            if (pageKey == null) {
-                logger.error("No pageKey found for content $contentKey (version: $versionKey)")
-                return null
-            }
-
-            val unitKey = getUnitKey()
-            if (unitKey == null) {
-                logger.error("No unitKey found for content $contentKey (version: $versionKey)")
-                return null
-            }
-
-            val defaultLocationKeys = cmsClient.getDefaultContentLocationKeys(contentKey, versionKey, pageKey, unitKey)
-            if (defaultLocationKeys == null) {
-                logger.error("Failed to retrieve default location keys for content $contentKey (version: $versionKey)")
-                return null
-            }
-
-            val siteKey = getSiteKey() ?: defaultLocationKeys.menuKey
-            if (siteKey == null) {
-                logger.info("No siteKey found for content $contentKey (version: $versionKey)")
-                return null
-            }
-
-            val pageTemplateKey = defaultLocationKeys.pageTemplateKey
-            if (pageTemplateKey == null) {
-                logger.info("No pageTemplateKey found for content $contentKey (version: $versionKey)")
-                return null
-            }
-
-            val menuItemKey = getMenuItemKey() ?: defaultLocationKeys.menuItemKey
-            if (menuItemKey == null) {
-                logger.info("No menuItemKey found for content $contentKey (version: $versionKey)")
-            }
-
-            return ContentRenderParams(
-                contentkey = contentKey,
-                versionkey = versionKey,
-                page = pageKey,
-                selectedunitkey = unitKey,
-                menukey = siteKey,
-                pagetemplatekey = pageTemplateKey,
-                menuitemkey = menuItemKey,
-            )
-        } catch (e: Exception) {
-            logger.error("Error building ContentRenderParams: ${e.message}")
+        val contentKey = getContentKey()
+        if (contentKey == null) {
+            logger.error("No contentKey found for provided element ${xmlToString(contentElement)}")
             return null
         }
+
+        val versionKey = getVersionKey()
+        if (versionKey == null) {
+            logger.error("No versionKey found for content $contentKey")
+            return null
+        }
+
+        val pageKey = getPageKey()
+        if (pageKey == null) {
+            logger.error("No pageKey found for content $contentKey (version: $versionKey)")
+            return null
+        }
+
+        val unitKey = getUnitKey()
+        if (unitKey == null) {
+            logger.error("No unitKey found for content $contentKey (version: $versionKey)")
+            return null
+        }
+
+        val defaultLocationKeys = cmsClient.getDefaultContentLocationKeys(contentKey, versionKey, pageKey, unitKey)
+        if (defaultLocationKeys == null) {
+            logger.error("Failed to retrieve default location keys for content $contentKey (version: $versionKey)")
+            return null
+        }
+
+        val siteKey = getSiteKey() ?: defaultLocationKeys.menuKey
+        if (siteKey == null) {
+            logger.info("No siteKey found for content $contentKey (version: $versionKey)")
+            return null
+        }
+
+        val pageTemplateKey = defaultLocationKeys.pageTemplateKey
+        if (pageTemplateKey == null) {
+            logger.info("No pageTemplateKey found for content $contentKey (version: $versionKey)")
+            return null
+        }
+
+        val menuItemKey = getMenuItemKey() ?: defaultLocationKeys.menuItemKey
+        if (menuItemKey == null) {
+            logger.info("No menuItemKey found for content $contentKey (version: $versionKey)")
+        }
+
+        return ContentRenderParams(
+            contentkey = contentKey,
+            versionkey = versionKey,
+            page = pageKey,
+            selectedunitkey = unitKey,
+            menukey = siteKey,
+            pagetemplatekey = pageTemplateKey,
+            menuitemkey = menuItemKey,
+        )
     }
 
     private fun getContentKey(): String? {

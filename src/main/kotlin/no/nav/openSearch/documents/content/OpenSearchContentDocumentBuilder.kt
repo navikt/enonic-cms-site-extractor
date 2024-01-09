@@ -98,12 +98,12 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
             }
     }
 
-    private fun getVersionReferences(element: Element): List<ContentVersionReference> {
+    private fun getVersionReferences(element: Element): List<ContentVersionReference>? {
         return element
             .getChild("versions")
-            .getChildren("version")
-            .filterIsInstance<Element>()
-            .map {
+            ?.getChildren("version")
+            ?.filterIsInstance<Element>()
+            ?.map {
                 ContentVersionReference(
                     key = it.getAttributeValue("key"),
                     statusKey = it.getAttributeValue("status-key"),

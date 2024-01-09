@@ -20,8 +20,8 @@ enum class CmsMigratorState {
 @Serializable
 data class CmsMigratorStatus(
     val state: CmsMigratorState,
-    val errors: LinkedHashMap<Int, String>,
-    val results: LinkedHashMap<Int, String>
+    val results: MutableList<String>,
+    val errors: MutableList<String>,
 )
 
 class CmsMigrator(
@@ -33,8 +33,8 @@ class CmsMigrator(
 
     private var state = CmsMigratorState.NOT_STARTED
 
-    private val errors = LinkedHashMap<Int, String>()
-    private val results = LinkedHashMap<Int, String>()
+    private val results = mutableListOf<String>()
+    private val errors = mutableListOf<String>()
 
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun run(): String {
@@ -117,17 +117,17 @@ class CmsMigrator(
     }
 
     fun getStatus(): CmsMigratorStatus {
-        return CmsMigratorStatus(state, errors, results)
+        return CmsMigratorStatus(state, results, errors)
     }
 
-    private fun logError(key: Int, msg: String) {
-        errors[key] = msg
-        logger.error("[$key]: $msg")
+    private fun logError(msg: String) {
+        errors.add(msg)
+        logger.error(msg)
     }
 
-    private fun logResult(key: Int, msg: String) {
-        results[key] = msg
-        logger.info("[$key]: $msg")
+    private fun logResult(msg: String) {
+        results.add(msg)
+        logger.info(msg)
     }
 
     private suspend fun migrateCategory(
@@ -139,16 +139,13 @@ class CmsMigrator(
         val categoryDocument = OpenSearchCategoryDocumentBuilder(cmsClient).build(categoryKey)
 
         if (categoryDocument == null) {
-            logError(categoryKey, "Failed to create category document for $categoryKey")
+            logError("Failed to create category document for $categoryKey")
             return
         }
 
         val result = openSearchClient.indexCategoryDocument(categoryDocument)
 
-        logResult(
-            categoryKey,
-            "Result for category $categoryKey to ${result.index}: ${result.result}"
-        )
+        logResult("Result for category $categoryKey to ${result.index}: ${result.result}")
 
         if (withContent) {
             categoryDocument.contents?.forEach {
@@ -167,21 +164,18 @@ class CmsMigrator(
         val contentDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromContent(contentKey)
 
         if (contentDocument == null) {
-            logError(contentKey, "Failed to create content document with content key $contentKey")
+            logError("Failed to create content document with content key $contentKey")
             return
         }
 
         val result = openSearchClient.indexContentDocument(contentDocument)
 
-        logResult(
-            contentKey,
-            "Result for content $contentKey to ${result.index}: ${result.result}"
-        )
+        logResult("Result for content $contentKey to ${result.index}: ${result.result}")
 
         migrateBinaries(contentDocument)
 
         if (withVersions) {
-            contentDocument.versions.forEach {
+            contentDocument.versions?.forEach {
                 if (it.key != contentDocument.versionKey) {
                     migrateVersion(it.key.toInt())
                 }
@@ -194,7 +188,6 @@ class CmsMigrator(
 
         if (contentVersionDocument == null) {
             logError(
-                versionKey,
                 "Failed to create content document with version key $versionKey"
             )
             return
@@ -202,7 +195,7 @@ class CmsMigrator(
 
         val result = openSearchClient.indexContentDocument(contentVersionDocument)
 
-        logResult(versionKey, "Result for content version $versionKey to ${result.index}: ${result.result}")
+        logResult("Result for content version $versionKey to ${result.index}: ${result.result}")
 
         migrateBinaries(contentVersionDocument)
     }
@@ -225,7 +218,6 @@ class CmsMigrator(
 
             if (binaryDocument == null) {
                 logError(
-                    binaryKey,
                     "Failed to create binary document with key $binaryKey for content $contentKey ($versionKey)"
                 )
                 return
@@ -234,7 +226,6 @@ class CmsMigrator(
             val result = openSearchClient.indexBinaryDocument(binaryDocument)
 
             logResult(
-                binaryKey,
                 "Result for binary with key $binaryKey for content $contentKey ($versionKey): ${result.result}"
             )
         }
