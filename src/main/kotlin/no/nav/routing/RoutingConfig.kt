@@ -3,6 +3,7 @@ package no.nav.routing
 import no.nav.routing.migration.migrationRoutes
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
 import no.nav.routing.cms.cmsClientRoutes
@@ -40,6 +41,14 @@ fun Application.configureRouting() {
             route("/migrate") {
                 migrationRoutes()
             }
+        }
+
+        get("/internal/isAlive") {
+            call.respondText("I am alive!")
+        }
+
+        get("/internal/isReady") {
+            call.respondText("I am ready!")
         }
     }
 }
