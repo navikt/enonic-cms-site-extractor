@@ -19,8 +19,7 @@ spec:
   ingresses:
     - {{ingress}}
   envFrom:
-    - secret: cms-migrator
-    - secret: {{instanceSecret}}
+    - secret: {{secret}}
   env:
   {{#each env as |var|}}
     - name: {{var.name}}
