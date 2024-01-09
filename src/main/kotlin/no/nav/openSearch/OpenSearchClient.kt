@@ -28,19 +28,14 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
     }
 
     private suspend fun createIndexIfNotExists(index: String, mappings: IndexMappings): Boolean {
-        val existsResponse = try {
-            this.client.exists(index)
-        } catch (e: RestException) {
-            logger.error("Oh noes! ${e.status} ${e.message}")
-            null
-        }
+        val existsResponse = client.exists(index)
 
-        if (existsResponse != false) {
+        if (existsResponse) {
             logger.info("Index already exists: $index")
             return true
         }
 
-        val result = this.client.createIndex(index) {
+        val result = client.createIndex(index) {
             mappings(dynamicEnabled = false, mappings)
         }
 
@@ -49,14 +44,14 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
 
     suspend fun indexContentDocument(document: OpenSearchContentDocument): DocumentIndexResponse {
         val id = if (document.isCurrentVersion) document.contentKey else document.versionKey
-        return this.client.indexDocument(target = contentIndexName, document = document, id = id)
+        return client.indexDocument(target = contentIndexName, document = document, id = id)
     }
 
     suspend fun indexCategoryDocument(document: OpenSearchCategoryDocument): DocumentIndexResponse {
-        return this.client.indexDocument(target = categoriesIndexName, document = document, id = document.key)
+        return client.indexDocument(target = categoriesIndexName, document = document, id = document.key)
     }
 
     suspend fun indexBinaryDocument(document: OpenSearchBinaryDocument): DocumentIndexResponse {
-        return this.client.indexDocument(target = binariesIndexName, document = document, id = document.binaryKey)
+        return client.indexDocument(target = binariesIndexName, document = document, id = document.binaryKey)
     }
 }
