@@ -26,7 +26,7 @@ spec:
       value: {{var.value}}
   {{/each}}
   openSearch:
-    access: readwrite
+    access: admin
     instance: enonic-cms-archive
   replicas:
     min: 1
