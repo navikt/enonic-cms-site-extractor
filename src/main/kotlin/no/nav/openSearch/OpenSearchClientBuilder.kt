@@ -24,7 +24,7 @@ class OpenSearchClientBuilder(environment: ApplicationEnvironment?) {
 
         val url = URLBuilder(uri)
 
-        logger.info("Opensearch url: ${url.protocol.name}${url.host}:${url.port}")
+        logger.info("Opensearch url: ${url.host}:${url.port} - user: $user")
 
         val searchClient = SearchClient(
             KtorRestClient(

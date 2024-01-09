@@ -28,8 +28,14 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
     }
 
     private suspend fun createIndexIfNotExists(index: String, mappings: IndexMappings): Boolean {
-        val existsResponse = this.client.exists(index)
-        if (existsResponse) {
+        val existsResponse = try {
+            this.client.exists(index)
+        } catch (e: RestException) {
+            logger.error("Oh noes! ${e.status} ${e.message}")
+            null
+        }
+
+        if (existsResponse != false) {
             logger.info("Index already exists: $index")
             return true
         }
