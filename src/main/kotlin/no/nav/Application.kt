@@ -15,7 +15,7 @@ fun Application.module() {
     install(IgnoreTrailingSlash)
 
     install(CallLogging) {
-        filter { call -> call.request.path().startsWith("/") }
+        filter { call -> !call.request.path().startsWith("/internal") }
     }
 
     install(Resources)
