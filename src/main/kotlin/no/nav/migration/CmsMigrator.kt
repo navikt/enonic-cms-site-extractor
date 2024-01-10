@@ -10,7 +10,7 @@ import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 
 
 class CmsMigrator(
-    val params: ICmsMigrationParams,
+    private val params: ICmsMigrationParams,
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
 ) {

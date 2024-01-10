@@ -9,7 +9,6 @@ import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.migration.*
-import no.nav.utils.jsonResponse
 
 
 private class Migrate {
@@ -85,19 +84,6 @@ private suspend fun abortHandler(
         call.respond("Could not abort migration job for ${type.name} $key - The job may not be running")
     } else {
         call.respond("Aborted migration job for ${type.name} $key")
-    }
-}
-
-private suspend fun getStatusHandler(
-    key: Int,
-    type: CmsMigratorType,
-    call: ApplicationCall,
-) {
-    val result = CmsMigratorFactory.getStatus(key, type)
-    if (result == null) {
-        call.respond("No migration job found for ${type.name} $key - The job may not be running")
-    } else {
-        jsonResponse(call, result, "Failed to get status for ${type.name} $key")
     }
 }
 
