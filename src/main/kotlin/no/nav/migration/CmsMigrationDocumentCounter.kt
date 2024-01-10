@@ -7,16 +7,20 @@ import org.jdom.Element
 
 @Serializable
 data class CmsDocumentsCount(
+    val numCategories: Int,
+    val numContents: Int,
+    val numVersions: Int,
+    val numBinaries: Int
+)
+
+@Serializable
+data class CmsDocumentsLists(
     val categoriesList: MutableList<String>,
     val contentsList: MutableList<String>,
     val versionsList: MutableList<String>,
     val binariesList: MutableList<String>
-) {
-    val numCategories: Int = categoriesList.size
-    val numContents: Int = contentsList.size
-    val numVersions: Int = versionsList.size
-    val numBinaries: Int = binariesList.size
-}
+)
+
 
 class CmsMigrationDocumentCounter(private val params: ICmsMigrationParams, private val cmsClient: CmsClient) {
     private val categoriesList: MutableList<String> = mutableListOf()
@@ -36,6 +40,15 @@ class CmsMigrationDocumentCounter(private val params: ICmsMigrationParams, priva
 
     fun getCount(): CmsDocumentsCount {
         return CmsDocumentsCount(
+            categoriesList.size,
+            contentsList.size,
+            versionsList.size,
+            binariesList.size
+        )
+    }
+
+    fun getLists(): CmsDocumentsLists {
+        return CmsDocumentsLists(
             categoriesList,
             contentsList,
             versionsList,

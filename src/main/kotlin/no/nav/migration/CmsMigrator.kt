@@ -7,6 +7,7 @@ import no.nav.openSearch.documents.binary.OpenSearchBinaryDocumentBuilder
 import no.nav.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
 import no.nav.openSearch.documents.content.OpenSearchContentDocument
 import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
+import java.util.*
 
 
 class CmsMigrator(
@@ -14,29 +15,29 @@ class CmsMigrator(
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
 ) {
+    private val jobId: UUID = UUID.randomUUID()
+
     private var job: Job? = null
 
     val status: CmsMigratorStatus = CmsMigratorStatus(
-        params, CmsMigrationDocumentCounter(params, cmsClient)
+        params,
+        CmsMigrationDocumentCounter(params, cmsClient)
             .runCount()
             .getCount()
     )
 
     @OptIn(DelicateCoroutinesApi::class)
-    suspend fun run(): String {
-        if (status.state == CmsMigratorState.RUNNING) {
-            return "Migrator for ${params.key} is already running"
+    suspend fun run() {
+        if (status.state != CmsMigratorState.NOT_STARTED) {
+            status.log("Attempted to start migrator for ${params.key} (current state is ${status.state}")
+            return
         }
 
-        val msg = "Starting migration for ${params.key}";
-
-        status.log(msg)
+        status.log("Starting migration for ${params.key}")
 
         job = GlobalScope.launch {
             runJob()
         }
-
-        return msg
     }
 
     private suspend fun runJob() {
@@ -45,31 +46,23 @@ class CmsMigrator(
         try {
             when (params) {
                 is CmsCategoryMigrationParams -> {
-                    val categoryProgress = CmsCategoryMigrationStatus(params.key)
-                    status.categoriesStatus.add(categoryProgress)
                     migrateCategory(
                         params.key,
                         params.withChildren ?: false,
                         params.withContent ?: false,
                         params.withVersions ?: false,
-                        categoryProgress
                     )
                 }
 
                 is CmsContentMigrationParams -> {
-                    val contentProgress = CmsContentMigrationStatus(params.key)
-                    status.contentStatus.add(contentProgress)
                     migrateContent(
                         params.key,
                         params.withVersions ?: false,
-                        contentProgress
                     )
                 }
 
                 is CmsVersionMigrationParams -> {
-                    val versionProgress = CmsVersionMigrationStatus(params.key)
-                    status.versionsStatus.add(versionProgress)
-                    migrateVersion(params.key, versionProgress)
+                    migrateVersion(params.key)
                 }
             }
         } catch (e: Exception) {
@@ -97,7 +90,6 @@ class CmsMigrator(
         withChildren: Boolean,
         withContent: Boolean,
         withVersions: Boolean,
-        status: CmsCategoryMigrationStatus
     ) {
         val categoryDocument = OpenSearchCategoryDocumentBuilder(cmsClient).build(categoryKey)
 
@@ -106,51 +98,51 @@ class CmsMigrator(
             return
         }
 
-        status.numCategories = categoryDocument.categories?.size ?: 0
-        status.numContent = categoryDocument.contents?.size ?: 0
-
         val result = openSearchClient.indexCategoryDocument(categoryDocument)
 
-        status.log("Result for category $categoryKey to ${result.index}: ${result.result}")
+        status.setResult(
+            categoryKey,
+            ElementType.CATEGORY,
+            "Result for category $categoryKey to ${result.index}: ${result.result}"
+        )
 
         if (withContent) {
             categoryDocument.contents?.forEach {
-                val key = it.key.toInt()
-                val contentProgress = CmsContentMigrationStatus(key)
-                status.contentStatus.add(contentProgress)
-                migrateContent(key, withVersions, contentProgress)
+                migrateContent(it.key.toInt(), withVersions)
             }
         }
 
         if (withChildren) {
             categoryDocument.categories?.forEach {
-                val key = it.key.toInt()
-                val categoryProgress = CmsCategoryMigrationStatus(key)
-                status.categoriesStatus.add(categoryProgress)
-                migrateCategory(key, true, withContent, withVersions, categoryProgress)
+                migrateCategory(it.key.toInt(), true, withContent, withVersions)
             }
         }
+
+        this.status.categoriesMigrated++
     }
 
     private suspend fun migrateContent(
         contentKey: Int,
         withVersions: Boolean,
-        status: CmsContentMigrationStatus
     ) {
         val contentDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromContent(contentKey)
 
         if (contentDocument == null) {
-            status.log("Failed to create content document with content key $contentKey")
+            status.log("Failed to create content document with content key $contentKey", true)
             return
         }
 
-        status.numVersions = contentDocument.versions?.size ?: 0
-
         val result = openSearchClient.indexContentDocument(contentDocument)
 
-        status.log("Result for content $contentKey to ${result.index}: ${result.result}")
+        status.setResult(
+            contentKey,
+            ElementType.CONTENT,
+            "Result for content $contentKey to ${result.index}: ${result.result}"
+        )
 
-        migrateBinaries(contentDocument, status)
+        migrateBinaries(contentDocument)
+
+        this.status.contentsMigrated++
 
         if (withVersions) {
             contentDocument.versions?.forEach {
@@ -158,15 +150,12 @@ class CmsMigrator(
                     return
                 }
 
-                val key = it.key.toInt()
-                val versionProgress = CmsVersionMigrationStatus(key)
-                status.versionsStatus.add(versionProgress)
-                migrateVersion(key, versionProgress)
+                migrateVersion(it.key.toInt())
             }
         }
     }
 
-    private suspend fun migrateVersion(versionKey: Int, status: CmsVersionMigrationStatus) {
+    private suspend fun migrateVersion(versionKey: Int) {
         val contentVersionDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromVersion(versionKey)
 
         if (contentVersionDocument == null) {
@@ -176,12 +165,18 @@ class CmsMigrator(
 
         val result = openSearchClient.indexContentDocument(contentVersionDocument)
 
-        status.log("Result for content version $versionKey to ${result.index}: ${result.result}")
+        status.setResult(
+            versionKey,
+            ElementType.VERSION,
+            "Result for content version $versionKey to ${result.index}: ${result.result}"
+        )
 
-        migrateBinaries(contentVersionDocument, status)
+        migrateBinaries(contentVersionDocument)
+
+        this.status.versionsMigrated++
     }
 
-    private suspend fun migrateBinaries(contentDocument: OpenSearchContentDocument, status: CmsMigratorStatusBase) {
+    private suspend fun migrateBinaries(contentDocument: OpenSearchContentDocument) {
         val binaryRefs = contentDocument.binaries ?: return
 
         val contentKey = contentDocument.contentKey.toInt()
@@ -198,13 +193,22 @@ class CmsMigrator(
             val binaryKey = it.key.toInt()
 
             if (binaryDocument == null) {
-                status.log("Failed to create binary document with key $binaryKey for content $contentKey ($versionKey)")
+                status.log(
+                    "Failed to create binary document with key $binaryKey for content $contentKey ($versionKey)",
+                    true
+                )
                 return
             }
 
             val result = openSearchClient.indexBinaryDocument(binaryDocument)
 
-            status.log("Result for binary with key $binaryKey for content $contentKey ($versionKey): ${result.result}")
+            status.setResult(
+                binaryKey,
+                ElementType.BINARY,
+                "Result for binary with key $binaryKey for content $contentKey ($versionKey): ${result.result}"
+            )
+
+            this.status.binariesMigrated++
         }
     }
 }

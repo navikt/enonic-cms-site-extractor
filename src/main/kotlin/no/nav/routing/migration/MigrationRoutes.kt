@@ -18,20 +18,23 @@ private class Migrate {
         val withChildren: Boolean? = false,
         val withContent: Boolean? = false,
         val withVersions: Boolean? = false,
-        val statusOnly: Boolean? = false
+        val statusOnly: Boolean? = false,
+        val restart: Boolean? = false
     )
 
     @Resource("content/{contentKey}")
     class Content(
         val contentKey: Int,
         val withVersions: Boolean? = false,
-        val statusOnly: Boolean? = false
+        val statusOnly: Boolean? = false,
+        val restart: Boolean? = false
     )
 
     @Resource("version/{versionKey}")
     class Version(
         val versionKey: Int,
-        val statusOnly: Boolean? = false
+        val statusOnly: Boolean? = false,
+        val restart: Boolean? = false
     )
 }
 
@@ -51,12 +54,14 @@ private suspend fun runMigrationHandler(
     migratorParams: ICmsMigrationParams,
     call: ApplicationCall,
     environment: ApplicationEnvironment?,
-    statusOnly: Boolean? = false
+    statusOnly: Boolean? = false,
+    forceCreate: Boolean? = false
 ) {
     val migrator = CmsMigratorFactory
         .createOrRetrieveMigrator(
             migratorParams,
-            environment
+            environment,
+            forceCreate
         )
 
     if (migrator == null) {
@@ -102,7 +107,8 @@ fun Route.migrationRoutes() {
             ),
             call,
             this@migrationRoutes.environment,
-            it.statusOnly
+            it.statusOnly,
+            it.restart
         )
     }
 
@@ -114,7 +120,8 @@ fun Route.migrationRoutes() {
             ),
             call,
             this@migrationRoutes.environment,
-            it.statusOnly
+            it.statusOnly,
+            it.restart
         )
     }
 
@@ -123,7 +130,8 @@ fun Route.migrationRoutes() {
             CmsVersionMigrationParams(it.versionKey),
             call,
             this@migrationRoutes.environment,
-            it.statusOnly
+            it.statusOnly,
+            it.restart
         )
     }
 

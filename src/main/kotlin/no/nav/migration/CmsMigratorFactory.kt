@@ -4,6 +4,7 @@ import io.ktor.server.application.*
 import io.ktor.util.logging.*
 import no.nav.cms.client.CmsClientBuilder
 import no.nav.openSearch.OpenSearchClientBuilder
+import kotlin.collections.HashMap
 
 
 private val logger = KtorSimpleLogger("CmsMigratorFactory")
@@ -20,6 +21,7 @@ object CmsMigratorFactory {
     suspend fun createOrRetrieveMigrator(
         params: ICmsMigrationParams,
         environment: ApplicationEnvironment?,
+        forceCreate: Boolean? = false
     ): CmsMigrator? {
         val key = params.key
         val migratorMap = when (params) {
@@ -28,9 +30,11 @@ object CmsMigratorFactory {
             is CmsVersionMigrationParams -> versionMigrators
         }
 
-        val existingMigrator = migratorMap[key]
-        if (existingMigrator != null) {
-            return existingMigrator
+        if (forceCreate != true) {
+            val existingMigrator = migratorMap[key]
+            if (existingMigrator != null) {
+                return existingMigrator
+            }
         }
 
         val cmsClient = CmsClientBuilder(environment).build()
@@ -70,15 +74,5 @@ object CmsMigratorFactory {
         migrator.abort()
 
         return true
-    }
-
-    fun getStatus(key: Int, type: CmsMigratorType): CmsMigratorStatus? {
-        val migrator = getMigrator(key, type)
-        if (migrator == null) {
-            logger.info("No migration job found for $key of type ${type.name}")
-            return null
-        }
-
-        return migrator.status
     }
 }
