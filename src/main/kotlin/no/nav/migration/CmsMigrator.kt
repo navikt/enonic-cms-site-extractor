@@ -1,8 +1,6 @@
 package no.nav.migration
 
-import io.ktor.util.logging.*
 import kotlinx.coroutines.*
-import kotlinx.serialization.Serializable
 import no.nav.cms.client.CmsClient
 import no.nav.openSearch.OpenSearchClient
 import no.nav.openSearch.documents.binary.OpenSearchBinaryDocumentBuilder
@@ -11,196 +9,179 @@ import no.nav.openSearch.documents.content.OpenSearchContentDocument
 import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 
 
-private val logger = KtorSimpleLogger("CmsContentMigrator")
-
-enum class CmsMigratorState {
-    NOT_STARTED, RUNNING, ABORTED, FAILED, FINISHED
-}
-
-@Serializable
-data class CmsMigratorStatus(
-    val state: CmsMigratorState,
-    val results: MutableList<String>,
-    val errors: MutableList<String>,
-)
-
 class CmsMigrator(
-    val params: CmsMigratorParams,
+    val params: ICmsMigrationParams,
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
 ) {
     private var job: Job? = null
 
-    private var state = CmsMigratorState.NOT_STARTED
-
-    private val results = mutableListOf<String>()
-    private val errors = mutableListOf<String>()
+    val status: CmsMigratorStatus = CmsMigratorStatus(
+        params, CmsMigrationDocumentCounter(params, cmsClient)
+            .runCount()
+            .getCount()
+    )
 
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun run(): String {
-        if (state == CmsMigratorState.RUNNING) {
+        if (status.state == CmsMigratorState.RUNNING) {
             return "Migrator for ${params.key} is already running"
         }
+
+        val msg = "Starting migration for ${params.key}";
+
+        status.log(msg)
 
         job = GlobalScope.launch {
             runJob()
         }
 
-        val msg = when (params) {
-            is CmsCategoryMigratorParams -> {
-                "Started migrating category ${params.key} " +
-                        "(with children: ${params.withChildren} - " +
-                        "with content: ${params.withContent} - " +
-                        "with versions: ${params.withVersions})"
-            }
-
-            is CmsContentMigratorParams -> {
-                "Started migrating content ${params.key} " +
-                        "(with versions: ${params.withVersions})"
-            }
-
-            is CmsVersionMigratorParams -> {
-                "Started migrating version ${params.key}"
-            }
-        }
-
-        logger.info(msg)
         return msg
     }
 
     private suspend fun runJob() {
-        state = CmsMigratorState.RUNNING
-
-        errors.clear()
-        results.clear()
+        status.state = CmsMigratorState.RUNNING
 
         try {
             when (params) {
-                is CmsCategoryMigratorParams -> {
+                is CmsCategoryMigrationParams -> {
+                    val categoryProgress = CmsCategoryMigrationStatus(params.key)
+                    status.categoriesStatus.add(categoryProgress)
                     migrateCategory(
                         params.key,
                         params.withChildren ?: false,
                         params.withContent ?: false,
-                        params.withVersions ?: false
+                        params.withVersions ?: false,
+                        categoryProgress
                     )
                 }
 
-                is CmsContentMigratorParams -> {
+                is CmsContentMigrationParams -> {
+                    val contentProgress = CmsContentMigrationStatus(params.key)
+                    status.contentStatus.add(contentProgress)
                     migrateContent(
                         params.key,
-                        params.withVersions ?: false
+                        params.withVersions ?: false,
+                        contentProgress
                     )
                 }
 
-                is CmsVersionMigratorParams -> {
-                    migrateVersion(params.key)
+                is CmsVersionMigrationParams -> {
+                    val versionProgress = CmsVersionMigrationStatus(params.key)
+                    status.versionsStatus.add(versionProgress)
+                    migrateVersion(params.key, versionProgress)
                 }
             }
         } catch (e: Exception) {
             if (e is CancellationException) {
-                logger.info("Job for ${params.key} was cancelled")
+                status.log("Job for ${params.key} was cancelled")
             } else {
-                logger.error("Exception while running job for ${params.key} - ${e.message}")
-                state = CmsMigratorState.FAILED
+                status.log("Exception while running job for ${params.key} - ${e.message}", true)
+                status.state = CmsMigratorState.FAILED
             }
             throw e
         }
 
-        logger.info("Finished running job for ${params.key}")
-        state = CmsMigratorState.FINISHED
+        status.log("Finished running job for ${params.key}")
+        status.state = CmsMigratorState.FINISHED
     }
 
     suspend fun abort() {
-        state = CmsMigratorState.ABORTED
-        logger.info("Sending cancel signal for ${params.key}")
+        status.state = CmsMigratorState.ABORTED
+        status.log("Sending cancel signal for ${params.key}")
         job?.cancelAndJoin()
-    }
-
-    fun getStatus(): CmsMigratorStatus {
-        return CmsMigratorStatus(state, results, errors)
-    }
-
-    private fun logError(msg: String) {
-        errors.add(msg)
-        logger.error(msg)
-    }
-
-    private fun logResult(msg: String) {
-        results.add(msg)
-        logger.info(msg)
     }
 
     private suspend fun migrateCategory(
         categoryKey: Int,
         withChildren: Boolean,
         withContent: Boolean,
-        withVersions: Boolean
+        withVersions: Boolean,
+        status: CmsCategoryMigrationStatus
     ) {
         val categoryDocument = OpenSearchCategoryDocumentBuilder(cmsClient).build(categoryKey)
 
         if (categoryDocument == null) {
-            logError("Failed to create category document for $categoryKey")
+            status.log("Failed to create category document for $categoryKey", true)
             return
         }
 
+        status.numCategories = categoryDocument.categories?.size ?: 0
+        status.numContent = categoryDocument.contents?.size ?: 0
+
         val result = openSearchClient.indexCategoryDocument(categoryDocument)
 
-        logResult("Result for category $categoryKey to ${result.index}: ${result.result}")
+        status.log("Result for category $categoryKey to ${result.index}: ${result.result}")
 
         if (withContent) {
             categoryDocument.contents?.forEach {
-                migrateContent(it.key.toInt(), withVersions)
+                val key = it.key.toInt()
+                val contentProgress = CmsContentMigrationStatus(key)
+                status.contentStatus.add(contentProgress)
+                migrateContent(key, withVersions, contentProgress)
             }
         }
 
         if (withChildren) {
             categoryDocument.categories?.forEach {
-                migrateCategory(it.key.toInt(), true, withContent, withVersions)
+                val key = it.key.toInt()
+                val categoryProgress = CmsCategoryMigrationStatus(key)
+                status.categoriesStatus.add(categoryProgress)
+                migrateCategory(key, true, withContent, withVersions, categoryProgress)
             }
         }
     }
 
-    private suspend fun migrateContent(contentKey: Int, withVersions: Boolean) {
+    private suspend fun migrateContent(
+        contentKey: Int,
+        withVersions: Boolean,
+        status: CmsContentMigrationStatus
+    ) {
         val contentDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromContent(contentKey)
 
         if (contentDocument == null) {
-            logError("Failed to create content document with content key $contentKey")
+            status.log("Failed to create content document with content key $contentKey")
             return
         }
 
+        status.numVersions = contentDocument.versions?.size ?: 0
+
         val result = openSearchClient.indexContentDocument(contentDocument)
 
-        logResult("Result for content $contentKey to ${result.index}: ${result.result}")
+        status.log("Result for content $contentKey to ${result.index}: ${result.result}")
 
-        migrateBinaries(contentDocument)
+        migrateBinaries(contentDocument, status)
 
         if (withVersions) {
             contentDocument.versions?.forEach {
-                if (it.key != contentDocument.versionKey) {
-                    migrateVersion(it.key.toInt())
+                if (it.key == contentDocument.versionKey) {
+                    return
                 }
+
+                val key = it.key.toInt()
+                val versionProgress = CmsVersionMigrationStatus(key)
+                status.versionsStatus.add(versionProgress)
+                migrateVersion(key, versionProgress)
             }
         }
     }
 
-    private suspend fun migrateVersion(versionKey: Int) {
+    private suspend fun migrateVersion(versionKey: Int, status: CmsVersionMigrationStatus) {
         val contentVersionDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromVersion(versionKey)
 
         if (contentVersionDocument == null) {
-            logError(
-                "Failed to create content document with version key $versionKey"
-            )
+            status.log("Failed to create content document with version key $versionKey")
             return
         }
 
         val result = openSearchClient.indexContentDocument(contentVersionDocument)
 
-        logResult("Result for content version $versionKey to ${result.index}: ${result.result}")
+        status.log("Result for content version $versionKey to ${result.index}: ${result.result}")
 
-        migrateBinaries(contentVersionDocument)
+        migrateBinaries(contentVersionDocument, status)
     }
 
-    private suspend fun migrateBinaries(contentDocument: OpenSearchContentDocument) {
+    private suspend fun migrateBinaries(contentDocument: OpenSearchContentDocument, status: CmsMigratorStatusBase) {
         val binaryRefs = contentDocument.binaries ?: return
 
         val contentKey = contentDocument.contentKey.toInt()
@@ -217,17 +198,13 @@ class CmsMigrator(
             val binaryKey = it.key.toInt()
 
             if (binaryDocument == null) {
-                logError(
-                    "Failed to create binary document with key $binaryKey for content $contentKey ($versionKey)"
-                )
+                status.log("Failed to create binary document with key $binaryKey for content $contentKey ($versionKey)")
                 return
             }
 
             val result = openSearchClient.indexBinaryDocument(binaryDocument)
 
-            logResult(
-                "Result for binary with key $binaryKey for content $contentKey ($versionKey): ${result.result}"
-            )
+            status.log("Result for binary with key $binaryKey for content $contentKey ($versionKey): ${result.result}")
         }
     }
 }

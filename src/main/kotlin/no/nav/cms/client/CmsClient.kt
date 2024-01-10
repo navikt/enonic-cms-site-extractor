@@ -106,14 +106,21 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
             ?.getChild("category")
     }
 
-    fun getContentByCategory(categoryKey: Int, depth: Int? = null, index: Int? = null, count: Int? = null): Document? {
+    fun getContentByCategory(
+        categoryKey: Int,
+        depth: Int? = null,
+        index: Int? = null,
+        count: Int? = null,
+        includeVersionsInfo: Boolean = false
+    ): Document? {
         val params = GetContentByCategoryParams()
         params.categoryKeys = intArrayOf(categoryKey)
         params.includeOfflineContent = true
         params.includeData = false
-        params.childrenLevel = depth ?: 1
+        params.levels = depth ?: 1
         params.index = index ?: 0
-        params.count = count ?: 100
+        params.count = count ?: 1000
+        params.includeVersionsInfo = includeVersionsInfo
 
         return rpcErrorHandler { rpcClient.getContentByCategory(params) }
     }

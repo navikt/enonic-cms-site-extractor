@@ -18,14 +18,14 @@ object CmsMigratorFactory {
     private val versionMigrators = HashMap<Int, CmsMigrator>()
 
     suspend fun createOrRetrieveMigrator(
-        params: CmsMigratorParams,
+        params: ICmsMigrationParams,
         environment: ApplicationEnvironment?,
     ): CmsMigrator? {
         val key = params.key
         val migratorMap = when (params) {
-            is CmsCategoryMigratorParams -> categoryMigrators
-            is CmsContentMigratorParams -> contentMigrators
-            is CmsVersionMigratorParams -> versionMigrators
+            is CmsCategoryMigrationParams -> categoryMigrators
+            is CmsContentMigrationParams -> contentMigrators
+            is CmsVersionMigrationParams -> versionMigrators
         }
 
         val existingMigrator = migratorMap[key]
@@ -79,6 +79,6 @@ object CmsMigratorFactory {
             return null
         }
 
-        return migrator.getStatus()
+        return migrator.status
     }
 }

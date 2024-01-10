@@ -1,22 +1,28 @@
 package no.nav.migration
 
+import kotlinx.serialization.Serializable
 
-sealed interface CmsMigratorParams {
+
+@Serializable
+sealed interface ICmsMigrationParams {
     val key: Int
 }
 
-data class CmsCategoryMigratorParams(
+@Serializable
+data class CmsCategoryMigrationParams(
     override val key: Int,
     val withChildren: Boolean?,
     val withContent: Boolean?,
     val withVersions: Boolean?
-) : CmsMigratorParams
+) : ICmsMigrationParams
 
-data class CmsContentMigratorParams(
+@Serializable
+data class CmsContentMigrationParams(
     override val key: Int,
     val withVersions: Boolean?
-) : CmsMigratorParams
+) : ICmsMigrationParams
 
-data class CmsVersionMigratorParams(
+@Serializable
+data class CmsVersionMigrationParams(
     override val key: Int,
-) : CmsMigratorParams
+) : ICmsMigrationParams
