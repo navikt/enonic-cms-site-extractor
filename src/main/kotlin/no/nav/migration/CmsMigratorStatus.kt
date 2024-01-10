@@ -18,26 +18,29 @@ enum class ElementType {
 }
 
 @Serializable
-data class ElementResult(
-    val key: Int,
-    val result: String,
+data class MigratedCount(
+    var categories: Int = 0,
+    var contents: Int = 0,
+    var versions: Int = 0,
+    var binaries: Int = 0,
 )
 
 @Serializable
-data class CmsMigratorStatus(private val params: ICmsMigrationParams, private val count: CmsDocumentsCount) {
-    private val logEntries: MutableList<String> = mutableListOf()
+data class CmsMigratorStatus(
+    private val params: ICmsMigrationParams,
+    private val count: CmsDocumentsCount,
+    private val remainingElements: CmsDocumentsLists
+) {
+    private val migratedCount = MigratedCount()
 
     var state: CmsMigratorState = CmsMigratorState.NOT_STARTED
 
-    var categoriesMigrated: Int = 0
-    var contentsMigrated: Int = 0
-    var versionsMigrated: Int = 0
-    var binariesMigrated: Int = 0
+    private val logEntries: MutableList<String> = mutableListOf()
 
-    val categoryResults: MutableMap<Int, ElementResult> = mutableMapOf()
-    val contentResults: MutableMap<Int, ElementResult> = mutableMapOf()
-    val versionResults: MutableMap<Int, ElementResult> = mutableMapOf()
-    val binaryResults: MutableMap<Int, ElementResult> = mutableMapOf()
+    private val categoryResults: MutableMap<Int, String> = mutableMapOf()
+    private val contentResults: MutableMap<Int, String> = mutableMapOf()
+    private val versionResults: MutableMap<Int, String> = mutableMapOf()
+    private val binaryResults: MutableMap<Int, String> = mutableMapOf()
 
     fun log(msg: String, isError: Boolean = false) {
         logEntries.add(withTimestamp(msg))
@@ -57,6 +60,37 @@ data class CmsMigratorStatus(private val params: ICmsMigrationParams, private va
             ElementType.BINARY -> binaryResults
         }
 
-        resultsMap[key] = ElementResult(key, withTimestamp(msg))
+        val msgWithTimestamp = withTimestamp(msg)
+
+        if (resultsMap.containsKey(key)) {
+            log(
+                "Duplicate results for $type $key - Previous result: ${resultsMap[key]} - New result: $msgWithTimestamp",
+                true
+            )
+        } else {
+            when (type) {
+                ElementType.CATEGORY -> {
+                    migratedCount.categories++
+                    remainingElements.categories.remove(key)
+                }
+
+                ElementType.CONTENT -> {
+                    migratedCount.contents++
+                    remainingElements.contents.remove(key)
+                }
+
+                ElementType.VERSION -> {
+                    migratedCount.versions++
+                    remainingElements.versions.remove(key)
+                }
+
+                ElementType.BINARY -> {
+                    migratedCount.binaries++
+                    remainingElements.binaries.remove(key)
+                }
+            }
+        }
+
+        resultsMap[key] = msgWithTimestamp
     }
 }

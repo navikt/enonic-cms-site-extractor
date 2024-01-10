@@ -2,31 +2,31 @@ package no.nav.migration
 
 import kotlinx.serialization.Serializable
 import no.nav.cms.client.CmsClient
+import no.nav.cms.utils.getContentElement
 import org.jdom.Element
 
 
 @Serializable
 data class CmsDocumentsCount(
-    val numCategories: Int,
-    val numContents: Int,
-    val numVersions: Int,
-    val numBinaries: Int
+    val categories: Int,
+    val contents: Int,
+    val versions: Int,
+    val binaries: Int
 )
 
 @Serializable
 data class CmsDocumentsLists(
-    val categoriesList: MutableList<String>,
-    val contentsList: MutableList<String>,
-    val versionsList: MutableList<String>,
-    val binariesList: MutableList<String>
+    val categories: MutableSet<Int>,
+    val contents: MutableSet<Int>,
+    val versions: MutableSet<Int>,
+    val binaries: MutableSet<Int>
 )
 
-
 class CmsMigrationDocumentCounter(private val params: ICmsMigrationParams, private val cmsClient: CmsClient) {
-    private val categoriesList: MutableList<String> = mutableListOf()
-    private val contentsList: MutableList<String> = mutableListOf()
-    private val versionsList: MutableList<String> = mutableListOf()
-    private val binariesList: MutableList<String> = mutableListOf()
+    private val categories: MutableSet<Int> = mutableSetOf()
+    private val contents: MutableSet<Int> = mutableSetOf()
+    private val versions: MutableSet<Int> = mutableSetOf()
+    private val binaries: MutableSet<Int> = mutableSetOf()
 
     fun runCount(): CmsMigrationDocumentCounter {
         when (params) {
@@ -40,26 +40,26 @@ class CmsMigrationDocumentCounter(private val params: ICmsMigrationParams, priva
 
     fun getCount(): CmsDocumentsCount {
         return CmsDocumentsCount(
-            categoriesList.size,
-            contentsList.size,
-            versionsList.size,
-            binariesList.size
+            categories.size,
+            contents.size,
+            versions.size,
+            binaries.size
         )
     }
 
     fun getLists(): CmsDocumentsLists {
         return CmsDocumentsLists(
-            categoriesList,
-            contentsList,
-            versionsList,
-            binariesList
+            categories,
+            contents,
+            versions,
+            binaries
         )
     }
 
     private fun countCategories(params: CmsCategoryMigrationParams) {
         val categoryElement = cmsClient.getCategory(params.key, 1) ?: return
 
-        categoriesList.add(params.key.toString())
+        categories.add(params.key)
 
         cmsClient.getContentByCategory(params.key, 1, includeVersionsInfo = true)
             ?.rootElement
@@ -87,10 +87,12 @@ class CmsMigrationDocumentCounter(private val params: ICmsMigrationParams, priva
             }
     }
 
-    private fun countContents(contentElement: Element?, withVersions: Boolean?) {
-        val contentKey = contentElement?.getAttributeValue("key") ?: return
+    private fun countContents(contentElement: Element, withVersions: Boolean?) {
+        val contentKey = contentElement
+            .getAttributeValue("key")
+            .toInt()
 
-        contentsList.add(contentKey)
+        contents.add(contentKey)
 
         countBinaries(contentElement)
 
@@ -100,29 +102,41 @@ class CmsMigrationDocumentCounter(private val params: ICmsMigrationParams, priva
     }
 
     private fun countContents(params: CmsContentMigrationParams) {
+        val document = cmsClient.getContent(params.key) ?: return
+
+        val contentElement = getContentElement(document) ?: return
+
         countContents(
-            cmsClient.getContent(params.key)?.rootElement,
+            contentElement,
             params.withVersions
         )
     }
 
-    private fun countVersions(contentElement: Element?) {
+    private fun countVersions(contentElement: Element) {
+        val contentVersionKey = contentElement.getAttributeValue("versionkey")
+
         val versions = contentElement
-            ?.getChild("versions")
+            .getChild("versions")
             ?.getChildren("version")
             ?.filterIsInstance<Element>()
             ?.mapNotNull { versionElement ->
-                versionElement.getAttributeValue("key")
+                val versionKey = versionElement.getAttributeValue("key")
+
+                if (versionKey == contentVersionKey) {
+                    return@mapNotNull null
+                }
+
+                versionKey.toInt()
             }
 
         if (versions !== null) {
-            versionsList.addAll(versions)
+            this.versions.addAll(versions)
         }
     }
 
     private fun countVersions(params: CmsVersionMigrationParams) {
         if (cmsClient.getContentVersion(params.key) !== null) {
-            versionsList.add(params.key.toString())
+            versions.add(params.key)
         }
     }
 
@@ -132,11 +146,11 @@ class CmsMigrationDocumentCounter(private val params: ICmsMigrationParams, priva
             ?.getChildren("binary")
             ?.filterIsInstance<Element>()
             ?.mapNotNull {
-                it.getAttributeValue("key")
+                it.getAttributeValue("key")?.toInt()
             }
 
         if (binaryKeys != null) {
-            binariesList.addAll(binaryKeys)
+            binaries.addAll(binaryKeys)
         }
     }
 }

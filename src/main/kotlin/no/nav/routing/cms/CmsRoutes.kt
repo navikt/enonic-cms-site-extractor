@@ -175,7 +175,7 @@ fun Route.cmsClientRoutes() {
             call,
             CmsClientBuilder(this@cmsClientRoutes.environment)
                 .build()
-                ?.getContentByCategory(it.key, it.depth, it.index, it.count)
+                ?.getContentByCategory(it.key, it.depth, it.index, it.count, true)
         )
     }
 
