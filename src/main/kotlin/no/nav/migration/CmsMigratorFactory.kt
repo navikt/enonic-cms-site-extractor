@@ -18,6 +18,8 @@ object CmsMigratorFactory {
     private val contentMigrators = HashMap<Int, CmsMigrator>()
     private val versionMigrators = HashMap<Int, CmsMigrator>()
 
+    private val waitingForInit = mutableSetOf<Int>()
+
     suspend fun createOrRetrieveMigrator(
         params: ICmsMigrationParams,
         environment: ApplicationEnvironment?,
@@ -49,7 +51,21 @@ object CmsMigratorFactory {
             return null
         }
 
-        val migrator = CmsMigrator(params, cmsClient, openSearchClient)
+        if (waitingForInit.contains(key)) {
+            logger.warn("Migrator for key $key is currently initializing")
+            return null
+        }
+
+        waitingForInit.add(key)
+
+        val migrator = try {
+            CmsMigrator(params, cmsClient, openSearchClient)
+        } catch (e: Exception) {
+            logger.error("Error while initalizing CMS migrator: ${e.message}")
+            throw e
+        } finally {
+            waitingForInit.remove(key)
+        }
 
         migratorMap[key] = migrator
 
