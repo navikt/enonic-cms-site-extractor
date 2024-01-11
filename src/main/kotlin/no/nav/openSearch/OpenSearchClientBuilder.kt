@@ -24,7 +24,7 @@ class OpenSearchClientBuilder(environment: ApplicationEnvironment?) {
 
         val url = URLBuilder(uri)
 
-        logger.info("Opensearch url: ${url.host}:${url.port} - user: $user")
+        logger.info("Opensearch host: ${url.host}:${url.port} - user: $user")
 
         val searchClient = SearchClient(
             KtorRestClient(
@@ -36,6 +36,13 @@ class OpenSearchClientBuilder(environment: ApplicationEnvironment?) {
             )
         )
 
-        return OpenSearchClient(searchClient, indexPrefix).initIndices()
+        val client = try {
+            OpenSearchClient(searchClient, indexPrefix).init()
+        } catch (e: Exception) {
+            logger.error("Failed to initialize OpenSearch client - ${e.message}")
+            null
+        }
+
+        return client
     }
 }

@@ -7,53 +7,27 @@ import org.jdom.Element
 
 
 @Serializable
-data class CmsDocumentsCount(
-    val categories: Int,
-    val contents: Int,
-    val versions: Int,
-    val binaries: Int
-)
-
-@Serializable
-data class CmsDocumentsLists(
+data class CmsDocumentsKeys(
     val categories: MutableSet<Int>,
     val contents: MutableSet<Int>,
     val versions: MutableSet<Int>,
     val binaries: MutableSet<Int>
 )
 
-class CmsMigrationDocumentCounter(private val params: ICmsMigrationParams, private val cmsClient: CmsClient) {
+class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, private val cmsClient: CmsClient) {
     private val categories: MutableSet<Int> = mutableSetOf()
     private val contents: MutableSet<Int> = mutableSetOf()
     private val versions: MutableSet<Int> = mutableSetOf()
     private val binaries: MutableSet<Int> = mutableSetOf()
 
-    fun runCount(): CmsMigrationDocumentCounter {
+    fun run(): CmsDocumentsKeys {
         when (params) {
             is CmsCategoryMigrationParams -> countCategories(params)
             is CmsContentMigrationParams -> countContents(params)
             is CmsVersionMigrationParams -> countVersions(params)
         }
 
-        return this
-    }
-
-    fun getCount(): CmsDocumentsCount {
-        return CmsDocumentsCount(
-            categories.size,
-            contents.size,
-            versions.size,
-            binaries.size
-        )
-    }
-
-    fun getLists(): CmsDocumentsLists {
-        return CmsDocumentsLists(
-            categories,
-            contents,
-            versions,
-            binaries
-        )
+        return CmsDocumentsKeys(categories, contents, versions, binaries)
     }
 
     private fun countCategories(params: CmsCategoryMigrationParams) {

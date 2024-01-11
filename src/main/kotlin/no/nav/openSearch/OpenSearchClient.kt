@@ -19,15 +19,17 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
     private val contentIndexName: String = "${indexPrefix}_content"
     private val categoriesIndexName: String = "${indexPrefix}_categories"
     private val binariesIndexName: String = "${indexPrefix}_binaries"
+    private val migrationLogsIndexName: String = "${indexPrefix}_migrationlogs"
 
-    suspend fun initIndices(): OpenSearchClient {
+    suspend fun init(): OpenSearchClient {
         createIndexIfNotExists(contentIndexName, contentIndexMappings)
         createIndexIfNotExists(categoriesIndexName, categoryIndexMappings)
         createIndexIfNotExists(binariesIndexName, binaryIndexMappings)
+        createIndexIfNotExists(migrationLogsIndexName)
         return this
     }
 
-    private suspend fun createIndexIfNotExists(index: String, mappings: IndexMappings): Boolean {
+    private suspend fun createIndexIfNotExists(index: String, mappings: IndexMappings? = null): Boolean {
         val existsResponse = client.exists(index)
 
         if (existsResponse) {
@@ -36,7 +38,9 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
         }
 
         val result = client.createIndex(index) {
-            mappings(dynamicEnabled = false, mappings)
+            if (mappings != null) {
+                mappings(dynamicEnabled = false, mappings)
+            }
         }
 
         return result.acknowledged

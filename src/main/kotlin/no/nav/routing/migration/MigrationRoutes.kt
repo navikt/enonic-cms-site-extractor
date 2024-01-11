@@ -18,7 +18,7 @@ private class Migrate {
         val withChildren: Boolean? = false,
         val withContent: Boolean? = false,
         val withVersions: Boolean? = false,
-        val statusOnly: Boolean? = false,
+        val start: Boolean? = false,
         val restart: Boolean? = false
     )
 
@@ -26,14 +26,14 @@ private class Migrate {
     class Content(
         val contentKey: Int,
         val withVersions: Boolean? = false,
-        val statusOnly: Boolean? = false,
+        val start: Boolean? = false,
         val restart: Boolean? = false
     )
 
     @Resource("version/{versionKey}")
     class Version(
         val versionKey: Int,
-        val statusOnly: Boolean? = false,
+        val start: Boolean? = false,
         val restart: Boolean? = false
     )
 }
@@ -50,31 +50,31 @@ private class Abort {
     class Version(val parent: Abort = Abort(), val versionKey: Int)
 }
 
-private suspend fun runMigrationHandler(
-    migratorParams: ICmsMigrationParams,
+private suspend fun migrationHandler(
+    migrationParams: ICmsMigrationParams,
     call: ApplicationCall,
     environment: ApplicationEnvironment?,
-    statusOnly: Boolean? = false,
+    start: Boolean? = false,
     forceCreate: Boolean? = false
 ) {
     val migrator = CmsMigratorFactory
         .createOrRetrieveMigrator(
-            migratorParams,
+            migrationParams,
             environment,
             forceCreate
         )
 
     if (migrator == null) {
         call.response.status(HttpStatusCode.InternalServerError)
-        call.respond("Could not initialize CMS migrator")
+        call.respond("Failed to initialize CMS migrator!")
         return
     }
 
-    val response = migrator.status
-
-    if (statusOnly != true) {
+    if (start == true) {
         migrator.run()
     }
+
+    val response = migrator.getStatus()
 
     call.respond(response)
 }
@@ -98,7 +98,7 @@ fun Route.migrationRoutes() {
     }
 
     get<Migrate.Category> {
-        runMigrationHandler(
+        migrationHandler(
             CmsCategoryMigrationParams(
                 key = it.categoryKey,
                 withChildren = it.withChildren,
@@ -107,30 +107,30 @@ fun Route.migrationRoutes() {
             ),
             call,
             this@migrationRoutes.environment,
-            it.statusOnly,
+            it.start,
             it.restart
         )
     }
 
     get<Migrate.Content> {
-        runMigrationHandler(
+        migrationHandler(
             CmsContentMigrationParams(
                 key = it.contentKey,
                 withVersions = it.withVersions
             ),
             call,
             this@migrationRoutes.environment,
-            it.statusOnly,
+            it.start,
             it.restart
         )
     }
 
     get<Migrate.Version> {
-        runMigrationHandler(
+        migrationHandler(
             CmsVersionMigrationParams(it.versionKey),
             call,
             this@migrationRoutes.environment,
-            it.statusOnly,
+            it.start,
             it.restart
         )
     }

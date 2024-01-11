@@ -19,19 +19,18 @@ class CmsMigrator(
 
     private var job: Job? = null
 
-    private val documentCount = CmsMigrationDocumentCounter(params, cmsClient)
-        .runCount()
-
-    val status: CmsMigratorStatus = CmsMigratorStatus(
+    private val status: CmsMigrationStatus = CmsMigrationStatus(
         params,
-        documentCount.getCount(),
-        documentCount.getLists()
+        cmsClient,
+        openSearchClient
     )
+
+    private var state: CmsMigratorState = CmsMigratorState.NOT_STARTED
 
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun run() {
-        if (status.state != CmsMigratorState.NOT_STARTED) {
-            status.log("Attempted to start migrator for ${params.key} (current state is ${status.state})")
+        if (state != CmsMigratorState.NOT_STARTED) {
+            status.log("Attempted to start migrator for ${params.key} (current state is $state)")
             return
         }
 
@@ -43,7 +42,7 @@ class CmsMigrator(
     }
 
     private suspend fun runJob() {
-        status.state = CmsMigratorState.RUNNING
+        state = CmsMigratorState.RUNNING
 
         try {
             when (params) {
@@ -70,21 +69,25 @@ class CmsMigrator(
         } catch (e: Exception) {
             if (e is CancellationException) {
                 status.log("Job for ${params.key} was cancelled")
+                state = CmsMigratorState.ABORTED
             } else {
                 status.log("Exception while running job for ${params.key} - ${e.message}", true)
-                status.state = CmsMigratorState.FAILED
+                state = CmsMigratorState.FAILED
             }
             throw e
         }
 
         status.log("Finished running job for ${params.key}")
-        status.state = CmsMigratorState.FINISHED
+        state = CmsMigratorState.FINISHED
     }
 
     suspend fun abort() {
-        status.state = CmsMigratorState.ABORTED
         status.log("Sending cancel signal for ${params.key}")
         job?.cancelAndJoin()
+    }
+
+    fun getStatus(): CmsMigrationStatusData {
+        return status.getSummary()
     }
 
     private suspend fun migrateCategory(
