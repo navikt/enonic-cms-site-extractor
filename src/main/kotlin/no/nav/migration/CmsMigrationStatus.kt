@@ -70,6 +70,8 @@ class CmsMigrationStatus(
         documentsRemaining.binariesCurrentVersionsOnly.size
     )
 
+    val binariesIndexed: MutableSet<Int> = mutableSetOf()
+
     fun log(msg: String, isError: Boolean = false) {
         val msgWithTimestamp = withTimestamp(msg)
 
@@ -102,8 +104,7 @@ class CmsMigrationStatus(
         if (resultsMap.containsKey(key)) {
             log(
                 "Duplicate results for $type $key - Previous result: ${resultsMap[key]} - New result: $msg",
-                // The same binary may be referenced in multiple versions, this should not be considered an error
-                type != CmsElementType.BINARY
+                true
             )
         } else {
             val documentsRemaining = when (type) {
@@ -114,6 +115,10 @@ class CmsMigrationStatus(
             }
 
             documentsRemaining.remove(key)
+
+            if (type == CmsElementType.BINARY) {
+                binariesIndexed.add(key)
+            }
         }
 
         resultsMap[key] = msg

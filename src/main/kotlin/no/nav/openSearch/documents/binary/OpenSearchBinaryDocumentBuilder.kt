@@ -24,7 +24,7 @@ class OpenSearchBinaryDocumentBuilder(private val cmsClient: CmsClient) {
         return OpenSearchBinaryDocument(
             binaryKey = binaryReference.key,
             contentKey = contentKey.toString(),
-            versionKey = versionKey.toString(),
+            versionKeys = listOf(versionKey.toString()),
 
             filename = binaryReference.filename,
             filesize = binaryReference.filesize,

@@ -1,6 +1,7 @@
 package no.nav.openSearch
 
 import com.jillesvangurp.ktsearch.*
+import com.jillesvangurp.searchdsls.querydsl.Script
 import io.ktor.util.logging.*
 import no.nav.migration.CmsMigrationStatusData
 import no.nav.openSearch.documents.IndexMappings
@@ -72,6 +73,18 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
 
     suspend fun indexBinary(document: OpenSearchBinaryDocument): DocumentIndexResponse? {
         return indexDocument(binariesIndexName, document, document.binaryKey)
+    }
+
+    suspend fun addVersionKeyToBinaryDocument(binaryKey: Int, versionKey: Int): DocumentUpdateResponse? {
+        return try {
+            client.updateDocument(binariesIndexName, binaryKey.toString(), Script.create {
+                source = "if (!ctx._source.versionKeys.contains(params.key)) {ctx._source.versionKeys.add(params.key)}"
+                params = mapOf("key" to versionKey.toString())
+            })
+        } catch(e: RestException) {
+            logger.error("Error updating binary document for $binaryKey: [${e.status}] ${e.message}")
+            return null
+        }
     }
 
     suspend fun indexMigrationLog(document: CmsMigrationStatusData): DocumentIndexResponse? {

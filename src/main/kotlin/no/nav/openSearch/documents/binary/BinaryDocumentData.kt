@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 data class OpenSearchBinaryDocument(
     val binaryKey: String,
     val contentKey: String,
-    val versionKey: String,
+    val versionKeys: List<String>,
 
     val filename: String,
     val filesize: Int,

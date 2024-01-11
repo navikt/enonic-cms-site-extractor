@@ -191,14 +191,22 @@ class CmsMigrator(
         val versionKey = contentDocument.versionKey.toInt()
 
         binaryRefs.forEach {
+            val binaryKey = it.key.toInt()
+
+            if (status.binariesIndexed.contains(binaryKey)) {
+                val result = openSearchClient.addVersionKeyToBinaryDocument(binaryKey, versionKey)
+                if (result == null) {
+                    status.log("Failed to add new versionKey to binary $binaryKey", true)
+                }
+                return@forEach
+            }
+
             val binaryDocument = OpenSearchBinaryDocumentBuilder(cmsClient)
                 .build(
                     it,
                     contentKey = contentKey,
                     versionKey = versionKey
                 )
-
-            val binaryKey = it.key.toInt()
 
             if (binaryDocument != null) {
                 val result = openSearchClient.indexBinary(binaryDocument)

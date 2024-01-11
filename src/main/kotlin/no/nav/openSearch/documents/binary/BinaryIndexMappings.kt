@@ -6,7 +6,7 @@ import no.nav.openSearch.documents.IndexMappings
 val binaryIndexMappings: IndexMappings = {
     keyword(OpenSearchBinaryDocument::binaryKey)
     keyword(OpenSearchBinaryDocument::contentKey)
-    keyword(OpenSearchBinaryDocument::versionKey)
+    keyword(OpenSearchBinaryDocument::versionKeys)
 
     text(OpenSearchBinaryDocument::filename)
     number<Int>(OpenSearchBinaryDocument::filesize)
