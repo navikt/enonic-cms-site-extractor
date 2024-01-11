@@ -13,7 +13,7 @@ data class CmsDocumentsKeys(
     val categories: MutableSet<Int>,
     val contents: MutableSet<Int>,
     val versions: MutableSet<Int>,
-    val binaries: MutableSet<Int>
+    val binariesCurrentVersionsOnly: MutableSet<Int>
 )
 
 class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, private val cmsClient: CmsClient) {
@@ -116,20 +116,12 @@ class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, p
     }
 
     private fun countBinaries(contentElement: Element) {
-        val versions = cmsClient.getContentVersions(contentElement) ?: return
-
-        val binaryKeys = versions
-            .rootElement
-            ?.run { getChildElements(this, "content") }
-            ?.mapNotNull { versionElement ->
-                versionElement
-                    .getChild("binaries")
-                    ?.run { getChildElements(this, "binary") }
-                    ?.mapNotNull { binaryElement ->
-                        binaryElement.getAttributeValue("key")?.toInt()
-                    }
+        val binaryKeys = contentElement
+            .getChild("binaries")
+            ?.run { getChildElements(this, "binary")}
+            ?.mapNotNull {
+                it.getAttributeValue("key")?.toInt()
             }
-            ?.flatten()
 
         if (binaryKeys != null) {
             binaries.addAll(binaryKeys)

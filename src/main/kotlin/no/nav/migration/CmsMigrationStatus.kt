@@ -67,7 +67,7 @@ class CmsMigrationStatus(
         documentsRemaining.categories.size,
         documentsRemaining.contents.size,
         documentsRemaining.versions.size,
-        documentsRemaining.binaries.size
+        documentsRemaining.binariesCurrentVersionsOnly.size
     )
 
     fun log(msg: String, isError: Boolean = false) {
@@ -110,7 +110,7 @@ class CmsMigrationStatus(
                 CmsElementType.CATEGORY -> documentsRemaining.categories
                 CmsElementType.CONTENT -> documentsRemaining.contents
                 CmsElementType.VERSION -> documentsRemaining.versions
-                CmsElementType.BINARY -> documentsRemaining.binaries
+                CmsElementType.BINARY -> documentsRemaining.binariesCurrentVersionsOnly
             }
 
             documentsRemaining.remove(key)
