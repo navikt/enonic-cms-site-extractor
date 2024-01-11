@@ -115,6 +115,7 @@ class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, p
         }
     }
 
+    // This only includes binaries from the most recent content versions
     private fun countBinaries(contentElement: Element) {
         val binaryKeys = contentElement
             .getChild("binaries")
