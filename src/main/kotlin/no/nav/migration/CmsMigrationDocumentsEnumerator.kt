@@ -2,6 +2,8 @@ package no.nav.migration
 
 import kotlinx.serialization.Serializable
 import no.nav.cms.client.CmsClient
+import no.nav.cms.utils.getCategoryElement
+import no.nav.cms.utils.getChildElements
 import no.nav.cms.utils.getContentElement
 import org.jdom.Element
 
@@ -31,22 +33,22 @@ class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, p
     }
 
     private fun countCategories(params: CmsCategoryMigrationParams) {
-        val categoryElement = cmsClient.getCategory(params.key, 1) ?: return
+        val categoryElement = cmsClient.getCategory(params.key, 1)
+            ?.run { getCategoryElement(this) }
+            ?: return
 
         categories.add(params.key)
 
         cmsClient.getContentByCategory(params.key, 1, includeVersionsInfo = true)
             ?.rootElement
-            ?.getChildren("content")
-            ?.filterIsInstance<Element>()
+            ?.run { getChildElements(this, "content") }
             ?.forEach { contentElement ->
                 countContents(contentElement, params.withVersions)
             }
 
         categoryElement
             .getChild("categories")
-            ?.getChildren("category")
-            ?.filterIsInstance<Element>()
+            ?.run { getChildElements(this, "category") }
             ?.forEach {
                 val key = it.getAttributeValue("key")?.toInt() ?: return
 
@@ -91,8 +93,7 @@ class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, p
 
         val versions = contentElement
             .getChild("versions")
-            ?.getChildren("version")
-            ?.filterIsInstance<Element>()
+            ?.run { getChildElements(this, "version") }
             ?.mapNotNull { versionElement ->
                 val versionKey = versionElement.getAttributeValue("key")
 
@@ -115,13 +116,19 @@ class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, p
     }
 
     private fun countBinaries(contentElement: Element) {
-        val binaryKeys = contentElement
-            .getChild("binaries")
-            ?.getChildren("binary")
-            ?.filterIsInstance<Element>()
-            ?.mapNotNull {
-                it.getAttributeValue("key")?.toInt()
+        val versions = cmsClient.getContentVersions(contentElement) ?: return
+
+        val binaryKeys = versions
+            .rootElement
+            ?.run { getChildElements(this, "content") }
+            ?.mapNotNull { versionElement ->
+                versionElement
+                    .run { getChildElements(this, "binary") }
+                    ?.mapNotNull { binaryElement ->
+                        binaryElement.getAttributeValue("key")?.toInt()
+                    }
             }
+            ?.flatten()
 
         if (binaryKeys != null) {
             binaries.addAll(binaryKeys)

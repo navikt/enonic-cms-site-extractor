@@ -2,6 +2,8 @@ package no.nav.openSearch.documents.category
 
 import CategoryRefData
 import no.nav.cms.client.CmsClient
+import no.nav.cms.utils.getCategoryElement
+import no.nav.cms.utils.getChildElements
 import no.nav.utils.parseDateTime
 import no.nav.utils.xmlToString
 import org.jdom.Element
@@ -10,7 +12,10 @@ import org.jdom.Element
 class OpenSearchCategoryDocumentBuilder(private val cmsClient: CmsClient) {
 
     fun build(categoryKey: Int): OpenSearchCategoryDocument? {
-        val categoryElement = cmsClient.getCategory(categoryKey, 1) ?: return null
+        val categoryElement = cmsClient.getCategory(categoryKey, 1)
+            ?.run { getCategoryElement(this) }
+            ?: return null
+
         val xmlString = xmlToString(categoryElement) ?: return null
 
         return OpenSearchCategoryDocument(
@@ -27,8 +32,7 @@ class OpenSearchCategoryDocumentBuilder(private val cmsClient: CmsClient) {
     private fun getCategoryReferences(element: Element): List<CategoryRefData>? {
         return element
             .getChild("categories")
-            ?.getChildren("category")
-            ?.filterIsInstance<Element>()
+            ?.run { getChildElements(this, "category") }
             ?.map {
                 CategoryRefData(
                     key = it.getAttributeValue("key"),
@@ -42,8 +46,7 @@ class OpenSearchCategoryDocumentBuilder(private val cmsClient: CmsClient) {
 
         return contentsDocument
             ?.rootElement
-            ?.getChildren("content")
-            ?.filterIsInstance<Element>()
+            ?.run { getChildElements(this, "content") }
             ?.map {
                 ContentRefData(
                     key = it.getAttributeValue("key"),

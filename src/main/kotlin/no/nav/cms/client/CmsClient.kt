@@ -14,6 +14,7 @@ import com.enonic.cms.api.client.model.GetMenuItemParams
 import com.enonic.cms.api.client.model.GetMenuParams
 import io.ktor.server.auth.*
 import io.ktor.util.logging.*
+import no.nav.cms.utils.getChildElements
 import no.nav.cms.utils.getContentElement
 import org.jdom.Document
 import org.jdom.Element
@@ -67,6 +68,21 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
         return getContent(intArrayOf(contentKey))
     }
 
+    fun getContentVersions(contentElement: Element): Document? {
+        val versionKeys = contentElement
+            .getChild("versions")
+            ?.run { getChildElements(this, "version") }
+            ?.mapNotNull {
+                it.getAttributeValue("key")?.toInt()
+            }
+
+        if (versionKeys == null) {
+            return null
+        }
+
+        return getContentVersions(versionKeys.toIntArray())
+    }
+
     fun getContentVersions(versionKeys: IntArray): Document? {
         val params = GetContentVersionsParams()
         params.contentVersionKeys = versionKeys
@@ -95,15 +111,13 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
         return rpcErrorHandler { rpcClient.getMenuItem(params) }
     }
 
-    fun getCategory(categoryKey: Int, depth: Int? = null): Element? {
+    fun getCategory(categoryKey: Int, depth: Int? = null): Document? {
         val params = GetCategoriesParams()
         params.categoryKey = categoryKey
         params.includeTopCategory = true
         params.levels = depth ?: 1
 
         return rpcErrorHandler { rpcClient.getCategories(params) }
-            ?.rootElement
-            ?.getChild("category")
     }
 
     fun getContentByCategory(
@@ -171,10 +185,9 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
             return null
         }
 
-        val contentElement = getContentElement(document) ?: return null
-        val params = ContentRenderParamsBuilder(contentElement, this).build() ?: return null
-
-        return restClient.renderContent(params)
+        return getContentElement(document)
+            ?.run { ContentRenderParamsBuilder(this, this@CmsClient).build() }
+            ?.run { restClient.renderContent(this) }
     }
 
     suspend fun renderVersion(versionKey: Int): String? {

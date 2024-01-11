@@ -1,25 +1,26 @@
 package no.nav.cms.utils
 
-import io.ktor.util.logging.*
 import org.jdom.Document
 import org.jdom.Element
 
 
 private const val CONTENT_ELEMENT_NAME = "content"
-
-private val logger = KtorSimpleLogger("getContentElement")
+private const val CATEGORY_ELEMENT_NAME = "category"
 
 fun getContentElement(document: Document): Element? {
-    val contentElement = document
+    return document
         .rootElement
-        ?.getChild("content")
+        ?.getChild(CONTENT_ELEMENT_NAME)
+}
 
-    val elementName = contentElement?.name
+fun getCategoryElement(document: Document): Element? {
+    return document
+        .rootElement
+        ?.getChild(CATEGORY_ELEMENT_NAME)
+}
 
-    if (elementName != CONTENT_ELEMENT_NAME) {
-        logger.error("Element is not a valid content element (expected $CONTENT_ELEMENT_NAME - got $elementName)")
-        return null
-    }
-
-    return contentElement
+fun getChildElements(element: Element, name: String): List<Element>? {
+    return element
+        .getChildren(name)
+        ?.filterIsInstance<Element>()
 }

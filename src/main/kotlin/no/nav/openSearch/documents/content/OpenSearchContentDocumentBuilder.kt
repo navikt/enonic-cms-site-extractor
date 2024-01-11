@@ -3,6 +3,7 @@ package no.nav.openSearch.documents.content
 import CategoryRefData
 import no.nav.openSearch.documents._partials.cmsUser.CmsUserData
 import no.nav.cms.client.CmsClient
+import no.nav.cms.utils.getChildElements
 import no.nav.cms.utils.getContentElement
 import no.nav.utils.parseDateTime
 import no.nav.utils.xmlToString
@@ -79,30 +80,31 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
     private fun getLocations(element: Element): List<ContentLocation>? {
         return element
             .getChild("location")
-            ?.getChildren("site")
-            ?.filterIsInstance<Element>()
-            ?.flatMap { site ->
+            ?.run { getChildElements(this, "site") }
+            ?.mapNotNull { site ->
                 val siteKey = site.getAttributeValue("key")
 
-                site.getChildren("contentlocation").filterIsInstance<Element>().map { location ->
-                    ContentLocation(
-                        siteKey = siteKey,
-                        type = location.getAttributeValue("type"),
-                        menuItemKey = location.getAttributeValue("menuitemkey"),
-                        menuItemName = location.getAttributeValue("menuitemname"),
-                        menuItemPath = location.getAttributeValue("menuitempath"),
-                        menuItemDisplayName = location.getAttributeValue("menuitem-display-name"),
-                        home = location.getAttribute("home").booleanValue,
-                    )
-                }
+                site
+                    .run { getChildElements(this, "contentlocation") }
+                    ?.map { location ->
+                        ContentLocation(
+                            siteKey = siteKey,
+                            type = location.getAttributeValue("type"),
+                            menuItemKey = location.getAttributeValue("menuitemkey"),
+                            menuItemName = location.getAttributeValue("menuitemname"),
+                            menuItemPath = location.getAttributeValue("menuitempath"),
+                            menuItemDisplayName = location.getAttributeValue("menuitem-display-name"),
+                            home = location.getAttribute("home").booleanValue,
+                        )
+                    }
             }
+            ?.flatten()
     }
 
     private fun getVersionReferences(element: Element): List<ContentVersionReference>? {
         return element
             .getChild("versions")
-            ?.getChildren("version")
-            ?.filterIsInstance<Element>()
+            ?.run { getChildElements(this, "version") }
             ?.map {
                 ContentVersionReference(
                     key = it.getAttributeValue("key"),
@@ -119,8 +121,7 @@ class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
     private fun getBinaryReferences(element: Element): List<ContentBinaryReference>? {
         return element
             .getChild("binaries")
-            ?.getChildren("binary")
-            ?.filterIsInstance<Element>()
+            ?.run { getChildElements(this, "binary") }
             ?.map {
                 ContentBinaryReference(
                     key = it.getAttributeValue("key"),
