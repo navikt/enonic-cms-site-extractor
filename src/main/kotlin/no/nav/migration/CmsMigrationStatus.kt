@@ -1,18 +1,15 @@
 package no.nav.migration
 
+import com.jillesvangurp.ktsearch.DocumentIndexResponse
 import io.ktor.util.logging.*
 import kotlinx.serialization.Serializable
 import no.nav.cms.client.CmsClient
 import no.nav.openSearch.OpenSearchClient
 import no.nav.utils.withTimestamp
+import java.util.*
 
 
 private val logger = KtorSimpleLogger("CmsContentMigrationStatus")
-
-@Serializable
-enum class CmsMigratorState {
-    NOT_STARTED, RUNNING, ABORTED, FAILED, FINISHED
-}
 
 @Serializable
 enum class ElementType {
@@ -37,25 +34,27 @@ data class CmsMigrationResults(
 
 @Serializable
 data class CmsMigrationStatusData(
+    val jobId: String,
     val params: ICmsMigrationParams,
     val totalCount: CmsDocumentsCount,
     val migratedCount: CmsDocumentsCount,
     val log: List<String>,
     val results: CmsMigrationResults,
-    val remaining: CmsDocumentsKeys,
+    val remaining: CmsDocumentsKeys? = null,
 )
 
 class CmsMigrationStatus(
     private val params: ICmsMigrationParams,
-    private val cmsClient: CmsClient,
+    cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient
 ) {
+    private val jobId: String = UUID.randomUUID().toString()
+
     private val logEntries: MutableList<String> = mutableListOf()
 
     private val results = CmsMigrationResults()
 
-    private val documentsRemaining = CmsMigrationDocumentsEnumerator(params, cmsClient)
-        .run()
+    private val documentsRemaining = CmsMigrationDocumentsEnumerator(params, cmsClient).run()
 
     private val totalCount = CmsDocumentsCount(
         documentsRemaining.categories.size,
@@ -63,22 +62,6 @@ class CmsMigrationStatus(
         documentsRemaining.versions.size,
         documentsRemaining.binaries.size
     )
-
-    fun getSummary(): CmsMigrationStatusData {
-        return CmsMigrationStatusData(
-            params = params,
-            totalCount = totalCount,
-            migratedCount = CmsDocumentsCount(
-                results.categories.size,
-                results.contents.size,
-                results.versions.size,
-                results.binaries.size,
-            ),
-            remaining = documentsRemaining,
-            log = logEntries,
-            results = results
-        )
-    }
 
     fun log(msg: String, isError: Boolean = false) {
         logEntries.add(withTimestamp(msg))
@@ -117,5 +100,26 @@ class CmsMigrationStatus(
         }
 
         resultsMap[key] = msgWithTimestamp
+    }
+
+    fun getStatus(withRemaining: Boolean = false): CmsMigrationStatusData {
+        return CmsMigrationStatusData(
+            jobId = jobId,
+            params = params,
+            totalCount = totalCount,
+            migratedCount = CmsDocumentsCount(
+                results.categories.size,
+                results.contents.size,
+                results.versions.size,
+                results.binaries.size,
+            ),
+            log = logEntries,
+            results = results,
+            remaining = if (withRemaining) documentsRemaining else null,
+        )
+    }
+
+    suspend fun persistToDb(): DocumentIndexResponse {
+        return openSearchClient.indexMigrationLog(getStatus(true))
     }
 }

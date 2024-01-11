@@ -2,6 +2,7 @@ package no.nav.openSearch
 
 import com.jillesvangurp.ktsearch.*
 import io.ktor.util.logging.*
+import no.nav.migration.CmsMigrationStatusData
 import no.nav.openSearch.documents.IndexMappings
 import no.nav.openSearch.documents.binary.OpenSearchBinaryDocument
 import no.nav.openSearch.documents.binary.binaryIndexMappings
@@ -43,19 +44,24 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
             }
         }
 
+        logger.info("Result for creating index $index: $result")
+
         return result.acknowledged
     }
 
-    suspend fun indexContentDocument(document: OpenSearchContentDocument): DocumentIndexResponse {
-        val id = if (document.isCurrentVersion) document.contentKey else document.versionKey
-        return client.indexDocument(target = contentIndexName, document = document, id = id)
+    suspend fun indexContent(document: OpenSearchContentDocument): DocumentIndexResponse {
+        return client.indexDocument(contentIndexName, document, document.versionKey)
     }
 
-    suspend fun indexCategoryDocument(document: OpenSearchCategoryDocument): DocumentIndexResponse {
-        return client.indexDocument(target = categoriesIndexName, document = document, id = document.key)
+    suspend fun indexCategory(document: OpenSearchCategoryDocument): DocumentIndexResponse {
+        return client.indexDocument(categoriesIndexName, document, document.key)
     }
 
-    suspend fun indexBinaryDocument(document: OpenSearchBinaryDocument): DocumentIndexResponse {
-        return client.indexDocument(target = binariesIndexName, document = document, id = document.binaryKey)
+    suspend fun indexBinary(document: OpenSearchBinaryDocument): DocumentIndexResponse {
+        return client.indexDocument(binariesIndexName, document, document.binaryKey)
+    }
+
+    suspend fun indexMigrationLog(document: CmsMigrationStatusData): DocumentIndexResponse {
+        return client.indexDocument(migrationLogsIndexName, document, document.jobId)
     }
 }

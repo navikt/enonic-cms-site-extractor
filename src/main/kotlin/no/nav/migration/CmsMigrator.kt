@@ -7,16 +7,20 @@ import no.nav.openSearch.documents.binary.OpenSearchBinaryDocumentBuilder
 import no.nav.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
 import no.nav.openSearch.documents.content.OpenSearchContentDocument
 import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
-import java.util.*
 
+
+private enum class State {
+    NOT_STARTED, RUNNING, ABORTED, FAILED, FINISHED
+}
+
+private val finishedStates = listOf(State.FINISHED, State.FAILED, State.ABORTED)
 
 class CmsMigrator(
     private val params: ICmsMigrationParams,
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
 ) {
-    private val jobId: UUID = UUID.randomUUID()
-
+    private var state: State = State.NOT_STARTED
     private var job: Job? = null
 
     private val status: CmsMigrationStatus = CmsMigrationStatus(
@@ -25,24 +29,31 @@ class CmsMigrator(
         openSearchClient
     )
 
-    private var state: CmsMigratorState = CmsMigratorState.NOT_STARTED
-
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun run() {
-        if (state != CmsMigratorState.NOT_STARTED) {
-            status.log("Attempted to start migrator for ${params.key} (current state is $state)")
+        if (state != State.NOT_STARTED) {
+            status.log("Attempted to start migration for ${params.key}, but it was already started - current state: $state")
             return
         }
 
-        status.log("Starting migration for ${params.key}")
+        status.log("Starting migration job for ${params.key}")
 
         job = GlobalScope.launch {
             runJob()
         }
     }
 
+    private suspend fun setState(newState: State) {
+        status.log("Setting migration state to $newState")
+        state = newState
+
+        if (newState in finishedStates) {
+            status.persistToDb()
+        }
+    }
+
     private suspend fun runJob() {
-        state = CmsMigratorState.RUNNING
+        setState(State.RUNNING)
 
         try {
             when (params) {
@@ -69,16 +80,15 @@ class CmsMigrator(
         } catch (e: Exception) {
             if (e is CancellationException) {
                 status.log("Job for ${params.key} was cancelled")
-                state = CmsMigratorState.ABORTED
+                setState(State.ABORTED)
             } else {
                 status.log("Exception while running job for ${params.key} - ${e.message}", true)
-                state = CmsMigratorState.FAILED
+                setState(State.FAILED)
             }
             throw e
         }
 
-        status.log("Finished running job for ${params.key}")
-        state = CmsMigratorState.FINISHED
+        setState(State.FINISHED)
     }
 
     suspend fun abort() {
@@ -87,7 +97,7 @@ class CmsMigrator(
     }
 
     fun getStatus(): CmsMigrationStatusData {
-        return status.getSummary()
+        return status.getStatus()
     }
 
     private suspend fun migrateCategory(
@@ -103,7 +113,7 @@ class CmsMigrator(
             return
         }
 
-        val result = openSearchClient.indexCategoryDocument(categoryDocument)
+        val result = openSearchClient.indexCategory(categoryDocument)
 
         status.setResult(
             categoryKey,
@@ -135,7 +145,7 @@ class CmsMigrator(
             return
         }
 
-        val result = openSearchClient.indexContentDocument(contentDocument)
+        val result = openSearchClient.indexContent(contentDocument)
 
         status.setResult(
             contentKey,
@@ -162,7 +172,7 @@ class CmsMigrator(
             return
         }
 
-        val result = openSearchClient.indexContentDocument(contentVersionDocument)
+        val result = openSearchClient.indexContent(contentVersionDocument)
 
         status.setResult(
             versionKey,
@@ -190,7 +200,7 @@ class CmsMigrator(
             val binaryKey = it.key.toInt()
 
             if (binaryDocument != null) {
-                val result = openSearchClient.indexBinaryDocument(binaryDocument)
+                val result = openSearchClient.indexBinary(binaryDocument)
 
                 status.setResult(
                     binaryKey,
