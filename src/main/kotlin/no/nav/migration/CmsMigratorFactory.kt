@@ -75,4 +75,19 @@ object CmsMigratorFactory {
 
         return true
     }
+
+    fun getStatus(
+        key: Int,
+        type: CmsMigratorType,
+        withResults: Boolean?,
+        withRemaining: Boolean?
+    ): CmsMigrationStatusData? {
+        val migrator = getMigrator(key, type)
+        if (migrator == null) {
+            logger.info("No migration job found for $key of type ${type.name}")
+            return null
+        }
+
+        return migrator.getStatus(withResults, withRemaining)
+    }
 }

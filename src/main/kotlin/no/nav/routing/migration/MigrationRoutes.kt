@@ -15,26 +15,26 @@ private class Migrate {
     @Resource("category/{categoryKey}")
     class Category(
         val categoryKey: Int,
-        val withChildren: Boolean? = false,
-        val withContent: Boolean? = false,
-        val withVersions: Boolean? = false,
-        val start: Boolean? = false,
-        val restart: Boolean? = false
+        val withChildren: Boolean = false,
+        val withContent: Boolean = false,
+        val withVersions: Boolean = false,
+        val start: Boolean = false,
+        val restart: Boolean = false
     )
 
     @Resource("content/{contentKey}")
     class Content(
         val contentKey: Int,
-        val withVersions: Boolean? = false,
-        val start: Boolean? = false,
-        val restart: Boolean? = false
+        val withVersions: Boolean = false,
+        val start: Boolean = false,
+        val restart: Boolean = false
     )
 
     @Resource("version/{versionKey}")
     class Version(
         val versionKey: Int,
-        val start: Boolean? = false,
-        val restart: Boolean? = false
+        val start: Boolean = false,
+        val restart: Boolean = false
     )
 }
 
@@ -56,24 +56,24 @@ private class Status {
     class Category(
         val parent: Status = Status(),
         val categoryKey: Int,
-        val withResults: Boolean?,
-        val withRemaining: Boolean?
+        val withResults: Boolean = false,
+        val withRemaining: Boolean = false
     )
 
     @Resource("content/{contentKey}")
     class Content(
         val parent: Status = Status(),
         val contentKey: Int,
-        val withResults: Boolean?,
-        val withRemaining: Boolean?
+        val withResults: Boolean = false,
+        val withRemaining: Boolean = false
     )
 
     @Resource("version/versionKey}")
     class Version(
         val parent: Status = Status(),
         val versionKey: Int,
-        val withResults: Boolean?,
-        val withRemaining: Boolean?
+        val withResults: Boolean = false,
+        val withRemaining: Boolean = false
     )
 }
 
@@ -101,7 +101,7 @@ private suspend fun migrationHandler(
         migrator.run()
     }
 
-    val response = migrator.getStatus()
+    val response = migrator.getStatus(withResults = false, withRemaining = false)
 
     call.respond(response)
 }
@@ -116,6 +116,21 @@ private suspend fun abortHandler(
         call.respond("Could not abort migration job for ${type.name} $key - The job may not be running")
     } else {
         call.respond("Aborted migration job for ${type.name} $key")
+    }
+}
+
+private suspend fun statusHandler(
+    key: Int,
+    type: CmsMigratorType,
+    call: ApplicationCall,
+    withResults: Boolean?,
+    withRemaining: Boolean?
+) {
+    val result = CmsMigratorFactory.getStatus(key, type, withResults, withRemaining)
+    if (result == null) {
+        call.respond("No migration status found for ${type.name} $key - The job may not be running")
+    } else {
+        call.respond(result)
     }
 }
 
@@ -162,15 +177,57 @@ fun Route.migrationRoutes() {
         )
     }
 
+    get<Status.Category> {
+        statusHandler(
+            it.categoryKey,
+            CmsMigratorType.CATEGORY,
+            call,
+            it.withResults,
+            it.withRemaining
+        )
+    }
+
+    get<Status.Content> {
+        statusHandler(
+            it.contentKey,
+            CmsMigratorType.CONTENT,
+            call,
+            it.withResults,
+            it.withRemaining
+        )
+    }
+
+    get<Status.Version> {
+        statusHandler(
+            it.versionKey,
+            CmsMigratorType.VERSION,
+            call,
+            it.withResults,
+            it.withRemaining
+        )
+    }
+
     get<Abort.Category> {
-        abortHandler(it.categoryKey, CmsMigratorType.CATEGORY, call)
+        abortHandler(
+            it.categoryKey,
+            CmsMigratorType.CATEGORY,
+            call
+        )
     }
 
     get<Abort.Content> {
-        abortHandler(it.contentKey, CmsMigratorType.CONTENT, call)
+        abortHandler(
+            it.contentKey,
+            CmsMigratorType.CONTENT,
+            call
+        )
     }
 
     get<Abort.Version> {
-        abortHandler(it.versionKey, CmsMigratorType.VERSION, call)
+        abortHandler(
+            it.versionKey,
+            CmsMigratorType.VERSION,
+            call
+        )
     }
 }

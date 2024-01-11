@@ -96,8 +96,8 @@ class CmsMigrator(
         job?.cancelAndJoin()
     }
 
-    fun getStatus(): CmsMigrationStatusData {
-        return status.getStatus()
+    fun getStatus(withResults: Boolean?, withRemaining: Boolean?): CmsMigrationStatusData {
+        return status.getStatus(withResults, withRemaining)
     }
 
     private suspend fun migrateCategory(

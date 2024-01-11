@@ -149,7 +149,7 @@ class CmsMigrationStatus(
     suspend fun persistToDb() {
         val response = openSearchClient.indexMigrationLog(getStatus(true))
         if (response == null) {
-            log("Failed to persist status for job $jobId to OpenSearch")
+            log("Failed to persist status for job $jobId to OpenSearch!")
         } else {
             log("Response from OpenSearch indexing: $response")
         }

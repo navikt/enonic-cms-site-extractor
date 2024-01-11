@@ -99,7 +99,7 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
     }
 
     // Get the values of certain keys needed for rendering from the html of the preview selector
-    // in the admin UI. These keys can
+    // in the admin UI. These keys can be extracted from the admin UI html
     private fun getValueFromParamInHtml(frameHtml: String, key: String): String? {
         return Regex("""$key=(?<value>\d+)""")
             .find(frameHtml)
