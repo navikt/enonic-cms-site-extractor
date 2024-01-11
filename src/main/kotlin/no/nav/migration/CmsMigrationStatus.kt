@@ -102,7 +102,8 @@ class CmsMigrationStatus(
         if (resultsMap.containsKey(key)) {
             log(
                 "Duplicate results for $type $key - Previous result: ${resultsMap[key]} - New result: $msg",
-                true
+                // The same binary may be referenced in multiple versions, this should not be considered an error
+                type != CmsElementType.BINARY
             )
         } else {
             val documentsRemaining = when (type) {

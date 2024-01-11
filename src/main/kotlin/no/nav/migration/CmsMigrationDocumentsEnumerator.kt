@@ -123,7 +123,8 @@ class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, p
             ?.run { getChildElements(this, "content") }
             ?.mapNotNull { versionElement ->
                 versionElement
-                    .run { getChildElements(this, "binary") }
+                    .getChild("binaries")
+                    ?.run { getChildElements(this, "binary") }
                     ?.mapNotNull { binaryElement ->
                         binaryElement.getAttributeValue("key")?.toInt()
                     }
