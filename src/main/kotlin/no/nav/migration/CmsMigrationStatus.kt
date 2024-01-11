@@ -9,10 +9,10 @@ import no.nav.utils.withTimestamp
 import java.util.*
 
 
-private val logger = KtorSimpleLogger("CmsContentMigrationStatus")
+private val logger = KtorSimpleLogger("CmsMigrationStatus")
 
 @Serializable
-enum class ElementType {
+enum class CmsElementType {
     CATEGORY, CONTENT, VERSION, BINARY
 }
 
@@ -26,10 +26,10 @@ data class CmsDocumentsCount(
 
 @Serializable
 data class CmsMigrationResults(
-    val categories: MutableMap<Int, String> = mutableMapOf(),
-    val contents: MutableMap<Int, String> = mutableMapOf(),
-    val versions: MutableMap<Int, String> = mutableMapOf(),
-    val binaries: MutableMap<Int, String> = mutableMapOf(),
+    val categories: List<String>,
+    val contents: List<String>,
+    val versions: List<String>,
+    val binaries: List<String>,
 )
 
 @Serializable
@@ -39,8 +39,15 @@ data class CmsMigrationStatusData(
     val totalCount: CmsDocumentsCount,
     val migratedCount: CmsDocumentsCount,
     val log: List<String>,
-    val results: CmsMigrationResults,
+    val results: CmsMigrationResults? = null,
     val remaining: CmsDocumentsKeys? = null,
+)
+
+private data class Results(
+    val categories: MutableMap<Int, String> = mutableMapOf(),
+    val contents: MutableMap<Int, String> = mutableMapOf(),
+    val versions: MutableMap<Int, String> = mutableMapOf(),
+    val binaries: MutableMap<Int, String> = mutableMapOf(),
 )
 
 class CmsMigrationStatus(
@@ -52,7 +59,7 @@ class CmsMigrationStatus(
 
     private val logEntries: MutableList<String> = mutableListOf()
 
-    private val results = CmsMigrationResults()
+    private val results = Results()
 
     private val documentsRemaining = CmsMigrationDocumentsEnumerator(params, cmsClient).run()
 
@@ -64,45 +71,65 @@ class CmsMigrationStatus(
     )
 
     fun log(msg: String, isError: Boolean = false) {
-        logEntries.add(withTimestamp(msg))
+        val msgWithTimestamp = withTimestamp(msg)
 
         if (isError) {
+            logEntries.add("[Error] $msgWithTimestamp")
             logger.error(msg)
         } else {
+            logEntries.add(msgWithTimestamp)
             logger.info(msg)
         }
     }
 
-    fun setResult(key: Int, type: ElementType, msg: String) {
-        val resultsMap = when (type) {
-            ElementType.CATEGORY -> results.categories
-            ElementType.CONTENT -> results.contents
-            ElementType.VERSION -> results.versions
-            ElementType.BINARY -> results.binaries
+    fun setResult(key: Int, type: CmsElementType, result: DocumentIndexResponse?, msgSuffix: String = "") {
+        val elementDescription = "$type with key $key".plus(msgSuffix)
+
+        if (result == null) {
+            log("Failed to index $elementDescription!", true)
+            return
         }
 
-        val msgWithTimestamp = withTimestamp(msg)
+        val msg = withTimestamp("Indexed $elementDescription (index: ${result.index} - result: ${result.result})")
+
+        val resultsMap = when (type) {
+            CmsElementType.CATEGORY -> results.categories
+            CmsElementType.CONTENT -> results.contents
+            CmsElementType.VERSION -> results.versions
+            CmsElementType.BINARY -> results.binaries
+        }
 
         if (resultsMap.containsKey(key)) {
             log(
-                "Duplicate results for $type $key - Previous result: ${resultsMap[key]} - New result: $msgWithTimestamp",
+                "Duplicate results for $type $key - Previous result: ${resultsMap[key]} - New result: $msg",
                 true
             )
         } else {
             val documentsRemaining = when (type) {
-                ElementType.CATEGORY -> documentsRemaining.categories
-                ElementType.CONTENT -> documentsRemaining.contents
-                ElementType.VERSION -> documentsRemaining.versions
-                ElementType.BINARY -> documentsRemaining.binaries
+                CmsElementType.CATEGORY -> documentsRemaining.categories
+                CmsElementType.CONTENT -> documentsRemaining.contents
+                CmsElementType.VERSION -> documentsRemaining.versions
+                CmsElementType.BINARY -> documentsRemaining.binaries
             }
 
             documentsRemaining.remove(key)
         }
 
-        resultsMap[key] = msgWithTimestamp
+        resultsMap[key] = msg
     }
 
-    fun getStatus(withRemaining: Boolean = false): CmsMigrationStatusData {
+    fun getStatus(withResults: Boolean? = false, withRemaining: Boolean? = false): CmsMigrationStatusData {
+        val resultsLists = if (withResults == true) {
+            CmsMigrationResults(
+                results.categories.values.toList(),
+                results.contents.values.toList(),
+                results.versions.values.toList(),
+                results.binaries.values.toList(),
+            )
+        } else {
+            null
+        }
+
         return CmsMigrationStatusData(
             jobId = jobId,
             params = params,
@@ -114,12 +141,17 @@ class CmsMigrationStatus(
                 results.binaries.size,
             ),
             log = logEntries,
-            results = results,
-            remaining = if (withRemaining) documentsRemaining else null,
+            results = resultsLists,
+            remaining = if (withRemaining == true) documentsRemaining else null,
         )
     }
 
-    suspend fun persistToDb(): DocumentIndexResponse {
-        return openSearchClient.indexMigrationLog(getStatus(true))
+    suspend fun persistToDb() {
+        val response = openSearchClient.indexMigrationLog(getStatus(true))
+        if (response == null) {
+            log("Failed to persist status for job $jobId to OpenSearch")
+        } else {
+            log("Response from OpenSearch indexing: $response")
+        }
     }
 }

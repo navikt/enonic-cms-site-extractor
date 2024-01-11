@@ -49,19 +49,32 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
         return result.acknowledged
     }
 
-    suspend fun indexContent(document: OpenSearchContentDocument): DocumentIndexResponse {
-        return client.indexDocument(contentIndexName, document, document.versionKey)
+    private suspend inline fun <reified DocumentType> indexDocument(
+        index: String,
+        document: DocumentType,
+        id: String
+    ): DocumentIndexResponse? {
+        return try {
+            client.indexDocument(index, document, id)
+        } catch (e: RestException) {
+            logger.error("Error while indexing document $id to index $index - [${e.status}] ${e.message}")
+            return null
+        }
     }
 
-    suspend fun indexCategory(document: OpenSearchCategoryDocument): DocumentIndexResponse {
-        return client.indexDocument(categoriesIndexName, document, document.key)
+    suspend fun indexContent(document: OpenSearchContentDocument): DocumentIndexResponse? {
+        return indexDocument(contentIndexName, document, document.versionKey)
     }
 
-    suspend fun indexBinary(document: OpenSearchBinaryDocument): DocumentIndexResponse {
-        return client.indexDocument(binariesIndexName, document, document.binaryKey)
+    suspend fun indexCategory(document: OpenSearchCategoryDocument): DocumentIndexResponse? {
+        return indexDocument(categoriesIndexName, document, document.key)
     }
 
-    suspend fun indexMigrationLog(document: CmsMigrationStatusData): DocumentIndexResponse {
-        return client.indexDocument(migrationLogsIndexName, document, document.jobId)
+    suspend fun indexBinary(document: OpenSearchBinaryDocument): DocumentIndexResponse? {
+        return indexDocument(binariesIndexName, document, document.binaryKey)
+    }
+
+    suspend fun indexMigrationLog(document: CmsMigrationStatusData): DocumentIndexResponse? {
+        return indexDocument(migrationLogsIndexName, document, document.jobId)
     }
 }

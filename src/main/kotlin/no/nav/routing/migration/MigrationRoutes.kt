@@ -50,6 +50,33 @@ private class Abort {
     class Version(val parent: Abort = Abort(), val versionKey: Int)
 }
 
+@Resource("status")
+private class Status {
+    @Resource("category/{categoryKey}")
+    class Category(
+        val parent: Status = Status(),
+        val categoryKey: Int,
+        val withResults: Boolean?,
+        val withRemaining: Boolean?
+    )
+
+    @Resource("content/{contentKey}")
+    class Content(
+        val parent: Status = Status(),
+        val contentKey: Int,
+        val withResults: Boolean?,
+        val withRemaining: Boolean?
+    )
+
+    @Resource("version/versionKey}")
+    class Version(
+        val parent: Status = Status(),
+        val versionKey: Int,
+        val withResults: Boolean?,
+        val withRemaining: Boolean?
+    )
+}
+
 private suspend fun migrationHandler(
     migrationParams: ICmsMigrationParams,
     call: ApplicationCall,

@@ -117,8 +117,8 @@ class CmsMigrator(
 
         status.setResult(
             categoryKey,
-            ElementType.CATEGORY,
-            "Result for category $categoryKey to ${result.index}: ${result.result}"
+            CmsElementType.CATEGORY,
+            result
         )
 
         if (withContent) {
@@ -149,8 +149,8 @@ class CmsMigrator(
 
         status.setResult(
             contentKey,
-            ElementType.CONTENT,
-            "Result for content $contentKey to ${result.index}: ${result.result}"
+            CmsElementType.CONTENT,
+            result
         )
 
         migrateBinaries(contentDocument)
@@ -176,8 +176,9 @@ class CmsMigrator(
 
         status.setResult(
             versionKey,
-            ElementType.VERSION,
-            "Result for content version $versionKey to ${result.index}: ${result.result}"
+            CmsElementType.VERSION,
+            result,
+            " for content ${contentVersionDocument.contentKey}"
         )
 
         migrateBinaries(contentVersionDocument)
@@ -204,8 +205,9 @@ class CmsMigrator(
 
                 status.setResult(
                     binaryKey,
-                    ElementType.BINARY,
-                    "Result for binary with key $binaryKey for content $contentKey ($versionKey): ${result.result}"
+                    CmsElementType.BINARY,
+                    result,
+                    " for content $contentKey version $versionKey"
                 )
             } else {
                 status.log(
