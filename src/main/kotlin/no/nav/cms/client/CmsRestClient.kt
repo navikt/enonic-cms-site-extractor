@@ -4,7 +4,6 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.java.*
 import io.ktor.client.plugins.cookies.*
-import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
@@ -32,9 +31,6 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
     private val loginRedirectUrls: List<String> = listOf(loginUrl, cmsOrigin.plus(":443").plus(ADMIN_PATH))
 
     private val httpClient: HttpClient = HttpClient(Java) {
-        install(Logging) {
-            level = LogLevel.INFO
-        }
         install(HttpCookies)
         followRedirects = false
     }

@@ -1,6 +1,5 @@
 package no.nav.routing.migration
 
-import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -92,27 +91,23 @@ private suspend fun migrationHandler(
     start: Boolean? = false,
     forceCreate: Boolean? = false
 ) {
-    val migrator = CmsMigratorFactory
-        .createOrRetrieveMigrator(
+    val migratorState = CmsMigratorHandler.getMigratorState(migrationParams)
+
+    val msg = if (migratorState == null) {
+        "No migrator found for ${migrationParams.key}, it will be created"
+    } else {
+        "Current migrator state: $migratorState"
+    }
+
+    call.respond(msg)
+
+    CmsMigratorHandler
+        .initMigrator(
             migrationParams,
             environment,
+            start,
             forceCreate,
         )
-
-    if (migrator == null) {
-        call.response.status(HttpStatusCode.InternalServerError)
-        call.respond("Failed to initialize CMS migrator!")
-        return
-    }
-
-
-    val response = migrator.getStatus(withResults = false, withRemaining = false)
-
-    call.respond(response)
-
-    if (start == true) {
-        migrator.run()
-    }
 }
 
 private suspend fun abortHandler(
@@ -120,7 +115,7 @@ private suspend fun abortHandler(
     type: CmsMigratorType,
     call: ApplicationCall,
 ) {
-    val result = CmsMigratorFactory.abortJob(key, type)
+    val result = CmsMigratorHandler.abortJob(key, type)
     if (!result) {
         call.respond("Could not abort migration job for ${type.name} $key - The job may not be running")
     } else {
@@ -135,9 +130,9 @@ private suspend fun statusHandler(
     withResults: Boolean?,
     withRemaining: Boolean?
 ) {
-    val result = CmsMigratorFactory.getStatus(key, type, withResults, withRemaining)
+    val result = CmsMigratorHandler.getStatus(key, type, withResults, withRemaining)
     if (result == null) {
-        call.respond("No migration status found for ${type.name} $key - The job may not be running")
+        call.respond("No migration status found for ${type.name} $key - The job may not have been initialized")
     } else {
         call.respond(result)
     }
@@ -217,7 +212,7 @@ fun Route.migrationRoutes() {
     }
 
     get<Status.All> {
-        val statusAll = CmsMigratorFactory.getStatusAll()
+        val statusAll = CmsMigratorHandler.getStatusAll()
         call.respond(statusAll)
     }
 
@@ -246,7 +241,7 @@ fun Route.migrationRoutes() {
     }
 
     get<Cleanup> {
-        val numItemsRemoved = CmsMigratorFactory.cleanup()
+        val numItemsRemoved = CmsMigratorHandler.cleanup()
         call.respond("Removed $numItemsRemoved inactive migrator instances")
     }
 }
