@@ -54,7 +54,7 @@ fun Application.configureRouting() {
         }
 
         get("/internal/stop") {
-            logger.info("Received stop call, preparing to die! ${call.request.queryParameters} ${call.request.headers}")
+            logger.info("Received stop call, preparing to die!")
 
             CmsMigratorHandler.abortAll()
 

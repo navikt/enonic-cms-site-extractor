@@ -1,6 +1,5 @@
 package no.nav.migration
 
-import kotlinx.coroutines.*
 import no.nav.cms.client.CmsClient
 import no.nav.openSearch.OpenSearchClient
 import no.nav.openSearch.documents.binary.OpenSearchBinaryDocumentBuilder
@@ -13,6 +12,8 @@ enum class CmsMigratorState {
     NOT_STARTED, RUNNING, ABORTED, FAILED, FINISHED
 }
 
+private class AbortedException : Exception()
+
 private val finishedStates = listOf(CmsMigratorState.FINISHED, CmsMigratorState.FAILED, CmsMigratorState.ABORTED)
 
 class CmsMigrator(
@@ -21,7 +22,6 @@ class CmsMigrator(
     private val openSearchClient: OpenSearchClient,
 ) {
     var state: CmsMigratorState = CmsMigratorState.NOT_STARTED
-    private var job: Job? = null
 
     private val status: CmsMigrationStatus = CmsMigrationStatus(
         params,
@@ -37,20 +37,7 @@ class CmsMigrator(
 
         status.log("Starting migration job for ${params.key}")
 
-        job = runBlocking {
-            launch {
-                runJob()
-            }
-        }
-    }
-
-    private suspend fun setState(newState: CmsMigratorState) {
-        status.log("Setting migration state to $newState")
-        state = newState
-
-        if (newState in finishedStates) {
-            status.finish()
-        }
+        runJob()
     }
 
     private suspend fun runJob() {
@@ -79,22 +66,36 @@ class CmsMigrator(
                 }
             }
         } catch (e: Exception) {
-            if (e is CancellationException) {
-                status.log("Job for ${params.key} was cancelled")
-                setState(CmsMigratorState.ABORTED)
+            if (e is AbortedException) {
+                status.log("Job for ${params.key} was aborted")
+                return
             } else {
                 status.log("Exception while running job for ${params.key} - ${e.message}", true)
                 setState(CmsMigratorState.FAILED)
+                throw e
             }
-            throw e
         }
 
         setState(CmsMigratorState.FINISHED)
     }
 
+    private suspend fun setState(newState: CmsMigratorState) {
+        status.log("Setting migration state to $newState")
+        state = newState
+
+        if (newState in finishedStates) {
+            status.finish()
+        }
+    }
+
     suspend fun abort() {
-        status.log("Sending cancel signal for ${params.key}")
-        job?.cancelAndJoin()
+        setState(CmsMigratorState.ABORTED)
+    }
+
+    private fun handleAborted() {
+        if (state == CmsMigratorState.ABORTED) {
+            throw AbortedException()
+        }
     }
 
     fun getStatus(withResults: Boolean? = false, withRemaining: Boolean? = false): CmsMigrationStatusData {
@@ -107,6 +108,8 @@ class CmsMigrator(
         withContent: Boolean,
         withVersions: Boolean,
     ) {
+        handleAborted()
+
         val categoryDocument = OpenSearchCategoryDocumentBuilder(cmsClient).build(categoryKey)
 
         if (categoryDocument == null) {
@@ -139,6 +142,8 @@ class CmsMigrator(
         contentKey: Int,
         withVersions: Boolean,
     ) {
+        handleAborted()
+
         val contentDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromContent(contentKey)
 
         if (contentDocument == null) {
@@ -166,6 +171,8 @@ class CmsMigrator(
     }
 
     private suspend fun migrateVersion(versionKey: Int) {
+        handleAborted()
+
         val contentVersionDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromVersion(versionKey)
 
         if (contentVersionDocument == null) {
@@ -192,6 +199,8 @@ class CmsMigrator(
         val versionKey = contentDocument.versionKey.toInt()
 
         binaryRefs.forEach {
+            handleAborted()
+
             val binaryKey = it.key.toInt()
 
             if (status.binariesIndexed.contains(binaryKey)) {
