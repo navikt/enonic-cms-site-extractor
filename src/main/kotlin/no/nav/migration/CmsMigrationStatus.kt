@@ -59,7 +59,8 @@ class CmsMigrationStatus(
     private val openSearchClient: OpenSearchClient
 ) {
     private val jobId: String = UUID.randomUUID().toString()
-    private val timeStart = getTimestamp()
+    private val startTime = getTimestamp()
+    private var stopTime: String? = null
 
     private val logEntries: MutableList<String> = mutableListOf()
 
@@ -142,8 +143,8 @@ class CmsMigrationStatus(
 
         return CmsMigrationStatusData(
             jobId = jobId,
-            startTime = timeStart,
-            stopTime = getTimestamp(),
+            startTime = startTime,
+            stopTime = stopTime,
             params = params,
             totalCount = totalCount,
             migratedCount = CmsDocumentsCount(
@@ -158,12 +159,17 @@ class CmsMigrationStatus(
         )
     }
 
-    suspend fun persistToDb() {
+    private suspend fun persistToOpenSearch() {
         val response = openSearchClient.indexMigrationLog(getStatus(true))
         if (response == null) {
             log("Failed to persist status for job $jobId to OpenSearch!")
         } else {
             log("Response from OpenSearch indexing: $response")
         }
+    }
+
+    suspend fun finish() {
+        stopTime = getTimestamp()
+        persistToOpenSearch()
     }
 }

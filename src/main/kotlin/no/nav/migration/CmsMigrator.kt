@@ -49,7 +49,7 @@ class CmsMigrator(
         state = newState
 
         if (newState in finishedStates) {
-            status.persistToDb()
+            status.finish()
         }
     }
 
