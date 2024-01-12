@@ -91,7 +91,7 @@ private suspend fun migrationHandler(
         .createOrRetrieveMigrator(
             migrationParams,
             environment,
-            forceCreate
+            forceCreate,
         )
 
     if (migrator == null) {
@@ -100,13 +100,14 @@ private suspend fun migrationHandler(
         return
     }
 
-    if (start == true) {
-        migrator.run()
-    }
 
     val response = migrator.getStatus(withResults = false, withRemaining = false)
 
     call.respond(response)
+
+    if (start == true) {
+        migrator.run()
+    }
 }
 
 private suspend fun abortHandler(

@@ -1,6 +1,7 @@
 package no.nav.openSearch.documents.category
 
 import CategoryRefData
+import io.ktor.util.logging.*
 import no.nav.cms.client.CmsClient
 import no.nav.cms.utils.getCategoryElement
 import no.nav.cms.utils.getChildElements
@@ -9,12 +10,25 @@ import no.nav.utils.xmlToString
 import org.jdom.Element
 
 
+private val logger = KtorSimpleLogger("OpenSearchCategoryDocumentBuilder")
+
 class OpenSearchCategoryDocumentBuilder(private val cmsClient: CmsClient) {
 
     fun build(categoryKey: Int): OpenSearchCategoryDocument? {
-        val categoryElement = cmsClient.getCategory(categoryKey, 1)
-            ?.run { getCategoryElement(this) }
-            ?: return null
+        val categoryDocument = cmsClient.getCategory(categoryKey, 1)
+
+        if (categoryDocument == null) {
+            logger.info("Category document not found for $categoryKey")
+            return null
+        }
+
+        val categoryElement = categoryDocument
+            .run { getCategoryElement(this) }
+
+        if (categoryElement == null) {
+            logger.info("Category element not found for $categoryKey - Document: ${xmlToString(categoryDocument)}")
+            return null
+        }
 
         val xmlString = xmlToString(categoryElement) ?: return null
 

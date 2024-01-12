@@ -39,28 +39,32 @@ class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, p
 
         categories.add(params.key)
 
-        cmsClient.getContentByCategory(params.key, 1, includeVersionsInfo = true)
-            ?.rootElement
-            ?.run { getChildElements(this, "content") }
-            ?.forEach { contentElement ->
-                countContents(contentElement, params.withVersions)
-            }
+        if (params.withContent == true) {
+            cmsClient.getContentByCategory(params.key, 1, includeVersionsInfo = true)
+                ?.rootElement
+                ?.run { getChildElements(this, "content") }
+                ?.forEach { contentElement ->
+                    countContents(contentElement, params.withVersions)
+                }
+        }
 
-        categoryElement
-            .getChild("categories")
-            ?.run { getChildElements(this, "category") }
-            ?.forEach {
-                val key = it.getAttributeValue("key")?.toInt() ?: return
+        if (params.withChildren == true) {
+            categoryElement
+                .getChild("categories")
+                ?.run { getChildElements(this, "category") }
+                ?.forEach {
+                    val key = it.getAttributeValue("key")?.toInt() ?: return
 
-                countCategories(
-                    CmsCategoryMigrationParams(
-                        key,
-                        withChildren = params.withChildren,
-                        withContent = params.withContent,
-                        withVersions = params.withVersions,
+                    countCategories(
+                        CmsCategoryMigrationParams(
+                            key,
+                            withChildren = params.withChildren,
+                            withContent = params.withContent,
+                            withVersions = params.withVersions,
+                        )
                     )
-                )
-            }
+                }
+        }
     }
 
     private fun countContents(contentElement: Element, withVersions: Boolean?) {

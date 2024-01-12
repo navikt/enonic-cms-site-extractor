@@ -25,7 +25,7 @@ object CmsMigratorFactory {
     suspend fun createOrRetrieveMigrator(
         params: ICmsMigrationParams,
         environment: ApplicationEnvironment?,
-        forceCreate: Boolean? = false
+        forceCreate: Boolean? = false,
     ): CmsMigrator? {
         val key = params.key
         val migratorMap = when (params) {

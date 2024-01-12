@@ -29,7 +29,6 @@ class CmsMigrator(
         openSearchClient
     )
 
-    @OptIn(DelicateCoroutinesApi::class)
     suspend fun run() {
         if (state != CmsMigratorState.NOT_STARTED) {
             status.log("Attempted to start migration for ${params.key}, but it was already started - current state: $state")
@@ -38,8 +37,10 @@ class CmsMigrator(
 
         status.log("Starting migration job for ${params.key}")
 
-        job = GlobalScope.launch {
-            runJob()
+        job = runBlocking {
+            launch {
+                runJob()
+            }
         }
     }
 
