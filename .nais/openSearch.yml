@@ -8,4 +8,4 @@ metadata:
 spec:
   plan: startup-4
   project: nav-prod
-  disk_space: 200Gib
+  disk_space: 200GiB
