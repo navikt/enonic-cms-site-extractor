@@ -46,7 +46,7 @@ private class Abort {
     @Resource("content/{contentKey}")
     class Content(val parent: Abort = Abort(), val contentKey: Int)
 
-    @Resource("version/versionKey}")
+    @Resource("version/{versionKey}")
     class Version(val parent: Abort = Abort(), val versionKey: Int)
 }
 
