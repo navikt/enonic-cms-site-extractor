@@ -6,6 +6,7 @@ import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
+import kotlinx.coroutines.delay
 import no.nav.migration.CmsMigratorFactory
 import no.nav.routing.cms.cmsClientRoutes
 import no.nav.utils.getConfigVar
@@ -53,8 +54,12 @@ fun Application.configureRouting() {
         }
 
         get("/internal/stop") {
-            logger.info("Received stop call, preparing to die! ${call.parameters}")
+            logger.info("Received stop call, preparing to die! ${call.request.queryParameters} ${call.request.headers}")
+
             CmsMigratorFactory.abortAll()
+
+            delay(5000L)
+
             call.respond("Kill me!")
         }
     }
