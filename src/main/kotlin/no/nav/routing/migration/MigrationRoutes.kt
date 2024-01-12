@@ -51,7 +51,7 @@ private class Abort {
 }
 
 @Resource("status")
-private class Status {
+private class Status() {
     @Resource("category/{categoryKey}")
     class Category(
         val parent: Status = Status(),
@@ -74,6 +74,11 @@ private class Status {
         val versionKey: Int,
         val withResults: Boolean = false,
         val withRemaining: Boolean = false
+    )
+
+    @Resource("all")
+    class All(
+        val parent: Status = Status(),
     )
 }
 
@@ -209,6 +214,11 @@ fun Route.migrationRoutes() {
             it.withResults,
             it.withRemaining
         )
+    }
+
+    get<Status.All> {
+        val statusAll = CmsMigratorFactory.getStatusAll()
+        call.respond(statusAll)
     }
 
     get<Abort.Category> {

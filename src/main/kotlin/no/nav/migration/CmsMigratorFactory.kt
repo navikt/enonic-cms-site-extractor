@@ -2,10 +2,13 @@ package no.nav.migration
 
 import io.ktor.server.application.*
 import io.ktor.util.logging.*
+import kotlinx.serialization.Serializable
 import no.nav.cms.client.CmsClientBuilder
 import no.nav.openSearch.OpenSearchClientBuilder
 import kotlin.collections.HashMap
 
+
+private typealias MigratorsMap = HashMap<Int, CmsMigrator>
 
 private val logger = KtorSimpleLogger("CmsMigratorFactory")
 
@@ -13,7 +16,12 @@ enum class CmsMigratorType {
     CATEGORY, CONTENT, VERSION
 }
 
-typealias MigratorsMap = HashMap<Int, CmsMigrator>
+@Serializable
+data class CmsMigratorStatusAll(
+    val categories: List<CmsMigrationStatusData>,
+    val contents: List<CmsMigrationStatusData>,
+    val versions: List<CmsMigrationStatusData>,
+)
 
 object CmsMigratorFactory {
     private val categoryMigrators = MigratorsMap()
@@ -107,6 +115,14 @@ object CmsMigratorFactory {
         }
 
         return migrator.getStatus(withResults, withRemaining)
+    }
+
+    fun getStatusAll(): CmsMigratorStatusAll {
+        return CmsMigratorStatusAll(
+            categories = categoryMigrators.values.map { it.getStatus() },
+            contents = contentMigrators.values.map { it.getStatus() },
+            versions = versionMigrators.values.map { it.getStatus() }
+        )
     }
 
     private fun removeInactive(migratorsMap: MigratorsMap): Int {
