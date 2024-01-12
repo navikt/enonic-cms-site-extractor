@@ -13,11 +13,11 @@ spec:
   liveness:
     path: /internal/isAlive
     initialDelay: 5
-    timeout: 10
+    timeout: 30
   readiness:
     path: /internal/isReady
     initialDelay: 5
-    timeout: 10
+    timeout: 30
   ingresses:
     - {{ingress}}
   envFrom:
@@ -33,13 +33,14 @@ spec:
   replicas:
     min: 1
     max: 1
+    disableAutoScaling: true
   accessPolicy:
     outbound:
       external:
         - host: {{cmsHost}}
   resources:
     requests:
-      cpu: 1000m
+      cpu: 3000m
       memory: 4000Mi
     limits:
       memory: 8000Mi
