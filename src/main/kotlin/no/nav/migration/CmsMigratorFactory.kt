@@ -102,6 +102,16 @@ object CmsMigratorFactory {
         return true
     }
 
+    suspend fun abortAll() {
+        listOf(categoryMigrators, contentMigrators, versionMigrators).forEach { migratorsMap ->
+            migratorsMap.values.forEach { migrator ->
+                if (migrator.state == CmsMigratorState.RUNNING) {
+                    migrator.abort()
+                }
+            }
+        }
+    }
+
     fun getStatus(
         key: Int,
         type: CmsMigratorType,
@@ -134,7 +144,7 @@ object CmsMigratorFactory {
                 return@fold acc + 1
             }
 
-            acc
+            return@fold acc
         }
     }
 

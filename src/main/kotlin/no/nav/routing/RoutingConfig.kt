@@ -6,6 +6,7 @@ import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
+import no.nav.migration.CmsMigratorFactory
 import no.nav.routing.cms.cmsClientRoutes
 import no.nav.utils.getConfigVar
 
@@ -49,6 +50,12 @@ fun Application.configureRouting() {
 
         get("/internal/isReady") {
             call.respondText("I am ready!")
+        }
+
+        get("/internal/stop") {
+            logger.info("Received stop call, preparing to die! ${call.parameters}")
+            CmsMigratorFactory.abortAll()
+            call.respond("Kill me!")
         }
     }
 }

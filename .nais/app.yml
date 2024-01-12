@@ -18,6 +18,9 @@ spec:
     path: /internal/isReady
     initialDelay: 5
     timeout: 30
+  preStopHook:
+    http:
+      path: /internal/stop
   ingresses:
     - {{ingress}}
   envFrom:
