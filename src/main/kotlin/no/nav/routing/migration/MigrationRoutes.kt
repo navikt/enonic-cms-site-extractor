@@ -68,7 +68,7 @@ private class Status {
         val withRemaining: Boolean = false
     )
 
-    @Resource("version/versionKey}")
+    @Resource("version/{versionKey}")
     class Version(
         val parent: Status = Status(),
         val versionKey: Int,
@@ -76,6 +76,9 @@ private class Status {
         val withRemaining: Boolean = false
     )
 }
+
+@Resource("cleanup")
+private class Cleanup
 
 private suspend fun migrationHandler(
     migrationParams: ICmsMigrationParams,
@@ -229,5 +232,10 @@ fun Route.migrationRoutes() {
             CmsMigratorType.VERSION,
             call
         )
+    }
+
+    get<Cleanup> {
+        val numItemsRemoved = CmsMigratorFactory.cleanup()
+        call.respond("Removed $numItemsRemoved inactive migrator instances")
     }
 }

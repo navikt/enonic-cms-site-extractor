@@ -25,10 +25,12 @@ fun parseDateTime(datetime: String?): String? {
     }
 }
 
-fun withTimestamp(msg: String): String {
-    val timestamp = LocalDateTime
+fun getTimestamp(): String {
+    return LocalDateTime
         .now()
         .format(formatter)
+}
 
-    return "[$timestamp] $msg"
+fun withTimestamp(msg: String): String {
+    return "[${getTimestamp()}] $msg"
 }

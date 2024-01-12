@@ -5,6 +5,7 @@ import io.ktor.util.logging.*
 import kotlinx.serialization.Serializable
 import no.nav.cms.client.CmsClient
 import no.nav.openSearch.OpenSearchClient
+import no.nav.utils.getTimestamp
 import no.nav.utils.withTimestamp
 import java.util.*
 
@@ -35,6 +36,8 @@ data class CmsMigrationResults(
 @Serializable
 data class CmsMigrationStatusData(
     val jobId: String,
+    val startTime: String,
+    val stopTime: String? = null,
     val params: ICmsMigrationParams,
     val totalCount: CmsDocumentsCount,
     val migratedCount: CmsDocumentsCount,
@@ -56,6 +59,7 @@ class CmsMigrationStatus(
     private val openSearchClient: OpenSearchClient
 ) {
     private val jobId: String = UUID.randomUUID().toString()
+    private val timeStart = getTimestamp()
 
     private val logEntries: MutableList<String> = mutableListOf()
 
@@ -138,6 +142,8 @@ class CmsMigrationStatus(
 
         return CmsMigrationStatusData(
             jobId = jobId,
+            startTime = timeStart,
+            stopTime = getTimestamp(),
             params = params,
             totalCount = totalCount,
             migratedCount = CmsDocumentsCount(

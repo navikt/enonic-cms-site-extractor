@@ -154,9 +154,11 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
 
             if (response.status == HttpStatusCode.OK) {
                 return response.body()
+            } else {
+                logger.error("Invalid attachment response for b:$binaryKey c:$contentKey v:$versionKey - ${response.status}")
             }
         } catch (e: Exception) {
-            logger.info("Error fetching attachment: ${e.message}")
+            logger.error("Error fetching attachment for b:$binaryKey c:$contentKey v:$versionKey - ${e.message}")
         }
 
         return null

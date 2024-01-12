@@ -13,10 +13,12 @@ enum class CmsMigratorType {
     CATEGORY, CONTENT, VERSION
 }
 
+typealias MigratorsMap = HashMap<Int, CmsMigrator>
+
 object CmsMigratorFactory {
-    private val categoryMigrators = HashMap<Int, CmsMigrator>()
-    private val contentMigrators = HashMap<Int, CmsMigrator>()
-    private val versionMigrators = HashMap<Int, CmsMigrator>()
+    private val categoryMigrators = MigratorsMap()
+    private val contentMigrators = MigratorsMap()
+    private val versionMigrators = MigratorsMap()
 
     private val waitingForInit = mutableSetOf<Int>()
 
@@ -105,5 +107,24 @@ object CmsMigratorFactory {
         }
 
         return migrator.getStatus(withResults, withRemaining)
+    }
+
+    private fun removeInactive(migratorsMap: MigratorsMap): Int {
+        return migratorsMap.keys.fold(0) { acc, key ->
+            val migrator = migratorsMap[key]
+
+            if (migrator?.state != CmsMigratorState.RUNNING) {
+                migratorsMap.remove(key)
+                return@fold acc + 1
+            }
+
+            acc
+        }
+    }
+
+    fun cleanup(): Int {
+        return removeInactive(categoryMigrators) +
+                removeInactive(contentMigrators) +
+                removeInactive(versionMigrators)
     }
 }

@@ -9,18 +9,18 @@ import no.nav.openSearch.documents.content.OpenSearchContentDocument
 import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 
 
-private enum class State {
+enum class CmsMigratorState {
     NOT_STARTED, RUNNING, ABORTED, FAILED, FINISHED
 }
 
-private val finishedStates = listOf(State.FINISHED, State.FAILED, State.ABORTED)
+private val finishedStates = listOf(CmsMigratorState.FINISHED, CmsMigratorState.FAILED, CmsMigratorState.ABORTED)
 
 class CmsMigrator(
     private val params: ICmsMigrationParams,
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
 ) {
-    private var state: State = State.NOT_STARTED
+    var state: CmsMigratorState = CmsMigratorState.NOT_STARTED
     private var job: Job? = null
 
     private val status: CmsMigrationStatus = CmsMigrationStatus(
@@ -31,7 +31,7 @@ class CmsMigrator(
 
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun run() {
-        if (state != State.NOT_STARTED) {
+        if (state != CmsMigratorState.NOT_STARTED) {
             status.log("Attempted to start migration for ${params.key}, but it was already started - current state: $state")
             return
         }
@@ -43,7 +43,7 @@ class CmsMigrator(
         }
     }
 
-    private suspend fun setState(newState: State) {
+    private suspend fun setState(newState: CmsMigratorState) {
         status.log("Setting migration state to $newState")
         state = newState
 
@@ -53,7 +53,7 @@ class CmsMigrator(
     }
 
     private suspend fun runJob() {
-        setState(State.RUNNING)
+        setState(CmsMigratorState.RUNNING)
 
         try {
             when (params) {
@@ -80,15 +80,15 @@ class CmsMigrator(
         } catch (e: Exception) {
             if (e is CancellationException) {
                 status.log("Job for ${params.key} was cancelled")
-                setState(State.ABORTED)
+                setState(CmsMigratorState.ABORTED)
             } else {
                 status.log("Exception while running job for ${params.key} - ${e.message}", true)
-                setState(State.FAILED)
+                setState(CmsMigratorState.FAILED)
             }
             throw e
         }
 
-        setState(State.FINISHED)
+        setState(CmsMigratorState.FINISHED)
     }
 
     suspend fun abort() {
@@ -208,21 +208,22 @@ class CmsMigrator(
                     versionKey = versionKey
                 )
 
-            if (binaryDocument != null) {
-                val result = openSearchClient.indexBinary(binaryDocument)
-
-                status.setResult(
-                    binaryKey,
-                    CmsElementType.BINARY,
-                    result,
-                    " for content $contentKey version $versionKey"
-                )
-            } else {
+            if (binaryDocument == null) {
                 status.log(
                     "Failed to create binary document with key $binaryKey for content $contentKey ($versionKey)",
                     true
                 )
+                return@forEach
             }
+
+            val result = openSearchClient.indexBinary(binaryDocument)
+
+            status.setResult(
+                binaryKey,
+                CmsElementType.BINARY,
+                result,
+                " for content $contentKey version $versionKey"
+            )
         }
     }
 }
