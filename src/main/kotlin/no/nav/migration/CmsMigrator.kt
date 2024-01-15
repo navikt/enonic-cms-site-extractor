@@ -1,10 +1,8 @@
 package no.nav.migration
 
-import CmsMigrationStatusData
 import CmsMigrationStatusSummary
 import no.nav.cms.client.CmsClient
 import no.nav.migration.status.CmsMigrationStatus
-import no.nav.migration.status.CmsMigrationStatusBuilder
 import no.nav.openSearch.OpenSearchClient
 import no.nav.openSearch.documents.binary.OpenSearchBinaryDocumentBuilder
 import no.nav.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
@@ -13,36 +11,39 @@ import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 
 
 enum class CmsMigratorState {
-    INITIALIZING, READY, RUNNING, ABORTED, FAILED, FINISHED
+    READY, RUNNING, ABORTED, FAILED, FINISHED
 }
-
-private class AbortedException : Exception()
 
 private val finishedStates = setOf(CmsMigratorState.FINISHED, CmsMigratorState.FAILED, CmsMigratorState.ABORTED)
 
+private class AbortedException : Exception()
+
+private data class KeysToMigrate(
+    val categories: List<Int>,
+    val contents: List<Int>,
+    val versions: List<Int>,
+)
+
 class CmsMigrator(
-    private val params: ICmsMigrationParams,
+    private val status: CmsMigrationStatus,
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
 ) {
-    var state: CmsMigratorState
-    private val status: CmsMigrationStatus
+    var state: CmsMigratorState = CmsMigratorState.READY
 
-    init {
-        state = CmsMigratorState.INITIALIZING
-
-        status = CmsMigrationStatusBuilder(cmsClient, openSearchClient).build(params)
-
-        state = CmsMigratorState.READY
-    }
+    private val keysToMigrate: KeysToMigrate = KeysToMigrate(
+        categories = status.data.remaining.categories.toList(),
+        contents = status.data.remaining.contents.toList(),
+        versions = status.data.remaining.contents.toList()
+    )
 
     suspend fun run() {
         if (state != CmsMigratorState.READY) {
-            status.log("Attempted to start migration for ${params.key}, but it was already started - current state: $state")
+            status.log("Attempted to start migration job ${status.data.jobId}, but it was already started - current state: $state")
             return
         }
 
-        status.log("Starting migration job for ${params.key}")
+        status.log("Starting migration job ${status.data.jobId}")
 
         status.start()
         runJob()
@@ -52,33 +53,15 @@ class CmsMigrator(
         setState(CmsMigratorState.RUNNING)
 
         try {
-            when (params) {
-                is CmsCategoryMigrationParams -> {
-                    migrateCategory(
-                        params.key,
-                        params.withChildren ?: false,
-                        params.withContent ?: false,
-                        params.withVersions ?: false,
-                    )
-                }
-
-                is CmsContentMigrationParams -> {
-                    migrateContent(
-                        params.key,
-                        params.withVersions ?: false,
-                    )
-                }
-
-                is CmsVersionMigrationParams -> {
-                    migrateVersion(params.key)
-                }
-            }
+            keysToMigrate.categories.forEach { migrateCategory(it) }
+            keysToMigrate.contents.forEach { migrateContent(it) }
+            keysToMigrate.versions.forEach { migrateVersion(it) }
         } catch (e: Exception) {
             if (e is AbortedException) {
-                status.log("Job for ${params.key} was aborted")
+                status.log("Job ${status.data.jobId} was aborted")
                 return
             } else {
-                status.log("Exception while running job for ${params.key} - ${e.message}", true)
+                status.log("Exception while running job ${status.data.jobId} - ${e.message}", true)
                 setState(CmsMigratorState.FAILED)
                 throw e
             }
@@ -107,15 +90,10 @@ class CmsMigrator(
     }
 
     fun getStatusSummary(): CmsMigrationStatusSummary {
-        return status.getStatusSummary();
+        return status.getStatusSummary()
     }
 
-    private suspend fun migrateCategory(
-        categoryKey: Int,
-        withChildren: Boolean,
-        withContent: Boolean,
-        withVersions: Boolean,
-    ) {
+    private suspend fun migrateCategory(categoryKey: Int) {
         handleAborted()
 
         val categoryDocument = OpenSearchCategoryDocumentBuilder(cmsClient).build(categoryKey)
@@ -132,24 +110,9 @@ class CmsMigrator(
             CmsElementType.CATEGORY,
             result
         )
-
-        if (withContent) {
-            categoryDocument.contents?.forEach {
-                migrateContent(it.key.toInt(), withVersions)
-            }
-        }
-
-        if (withChildren) {
-            categoryDocument.categories?.forEach {
-                migrateCategory(it.key.toInt(), true, withContent, withVersions)
-            }
-        }
     }
 
-    private suspend fun migrateContent(
-        contentKey: Int,
-        withVersions: Boolean,
-    ) {
+    private suspend fun migrateContent(contentKey: Int) {
         handleAborted()
 
         val contentDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromContent(contentKey)
@@ -168,14 +131,6 @@ class CmsMigrator(
         )
 
         migrateBinaries(contentDocument)
-
-        if (withVersions) {
-            contentDocument.versions?.forEach {
-                if (it.key != contentDocument.versionKey) {
-                    migrateVersion(it.key.toInt())
-                }
-            }
-        }
     }
 
     private suspend fun migrateVersion(versionKey: Int) {

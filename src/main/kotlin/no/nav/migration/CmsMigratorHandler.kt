@@ -1,11 +1,11 @@
 package no.nav.migration
 
-import CmsMigrationStatusData
 import CmsMigrationStatusSummary
 import io.ktor.server.application.*
 import io.ktor.util.logging.*
 import kotlinx.serialization.Serializable
 import no.nav.cms.client.CmsClientBuilder
+import no.nav.migration.status.CmsMigrationStatusBuilder
 import no.nav.openSearch.OpenSearchClientBuilder
 import kotlin.collections.HashMap
 
@@ -38,6 +38,14 @@ object CmsMigratorHandler {
             is CmsContentMigrationParams -> contentMigrators
             is CmsVersionMigrationParams -> versionMigrators
         }
+    }
+
+    private fun getMigrator(key: Int, type: CmsMigratorType): CmsMigrator? {
+        return when (type) {
+            CmsMigratorType.CATEGORY -> categoryMigrators
+            CmsMigratorType.CONTENT -> contentMigrators
+            CmsMigratorType.VERSION -> versionMigrators
+        }[key]
     }
 
     fun getMigratorState(params: ICmsMigrationParams): String? {
@@ -99,7 +107,8 @@ object CmsMigratorHandler {
         waitingForInit.add(key)
 
         val migrator = try {
-            CmsMigrator(params, cmsClient, openSearchClient)
+            val status = CmsMigrationStatusBuilder(cmsClient, openSearchClient).build(params)
+            CmsMigrator(status, cmsClient, openSearchClient)
         } catch (e: Exception) {
             logger.error("Error while initalizing CMS migrator: ${e.message}")
             throw e
@@ -112,16 +121,8 @@ object CmsMigratorHandler {
         return migrator
     }
 
-    private fun getMigrators(key: Int, type: CmsMigratorType): CmsMigrator? {
-        return when (type) {
-            CmsMigratorType.CATEGORY -> categoryMigrators
-            CmsMigratorType.CONTENT -> contentMigrators
-            CmsMigratorType.VERSION -> versionMigrators
-        }[key]
-    }
-
     suspend fun abortJob(key: Int, type: CmsMigratorType): Boolean {
-        val migrator = getMigrators(key, type)
+        val migrator = getMigrator(key, type)
         if (migrator == null) {
             logger.info("No migration job found for $key of type ${type.name}")
             return false
@@ -143,7 +144,7 @@ object CmsMigratorHandler {
     }
 
     fun getStatus(key: Int, type: CmsMigratorType): CmsMigrationStatusSummary? {
-        val migrator = getMigrators(key, type)
+        val migrator = getMigrator(key, type)
         if (migrator == null) {
             logger.info("No migration job found for $key of type ${type.name}")
             return null
