@@ -37,54 +37,10 @@ private class Migrate {
     )
 }
 
-@Resource("abort")
-private class Abort {
-    @Resource("category/{categoryKey}")
-    class Category(val parent: Abort = Abort(), val categoryKey: Int)
-
-    @Resource("content/{contentKey}")
-    class Content(val parent: Abort = Abort(), val contentKey: Int)
-
-    @Resource("version/{versionKey}")
-    class Version(val parent: Abort = Abort(), val versionKey: Int)
-}
-
-@Resource("status")
-private class Status() {
-    @Resource("category/{categoryKey}")
-    class Category(
-        val parent: Status = Status(),
-        val categoryKey: Int,
-        val withResults: Boolean = false,
-        val withRemaining: Boolean = false
-    )
-
-    @Resource("content/{contentKey}")
-    class Content(
-        val parent: Status = Status(),
-        val contentKey: Int,
-        val withResults: Boolean = false,
-        val withRemaining: Boolean = false
-    )
-
-    @Resource("version/{versionKey}")
-    class Version(
-        val parent: Status = Status(),
-        val versionKey: Int,
-        val withResults: Boolean = false,
-        val withRemaining: Boolean = false
-    )
-
-    @Resource("all")
-    class All(
-        val parent: Status = Status(),
-    )
-}
-
 @Resource("cleanup")
 private class Cleanup
 
-private suspend fun migrationHandler(
+private suspend fun migrationReqHandler(
     migrationParams: ICmsMigrationParams,
     call: ApplicationCall,
     environment: ApplicationEnvironment?,
@@ -110,41 +66,13 @@ private suspend fun migrationHandler(
         )
 }
 
-private suspend fun abortHandler(
-    key: Int,
-    type: CmsMigratorType,
-    call: ApplicationCall,
-) {
-    val result = CmsMigratorHandler.abortJob(key, type)
-    if (!result) {
-        call.respond("Could not abort migration job for ${type.name} $key - The job may not be running")
-    } else {
-        call.respond("Aborted migration job for ${type.name} $key")
-    }
-}
-
-private suspend fun statusHandler(
-    key: Int,
-    type: CmsMigratorType,
-    call: ApplicationCall,
-    withResults: Boolean?,
-    withRemaining: Boolean?
-) {
-    val result = CmsMigratorHandler.getStatus(key, type, withResults, withRemaining)
-    if (result == null) {
-        call.respond("No migration status found for ${type.name} $key - The job may not have been initialized")
-    } else {
-        call.respond(result)
-    }
-}
-
 fun Route.migrationRoutes() {
     install(ContentNegotiation) {
         json()
     }
 
     get<Migrate.Category> {
-        migrationHandler(
+        migrationReqHandler(
             CmsCategoryMigrationParams(
                 key = it.categoryKey,
                 withChildren = it.withChildren,
@@ -159,7 +87,7 @@ fun Route.migrationRoutes() {
     }
 
     get<Migrate.Content> {
-        migrationHandler(
+        migrationReqHandler(
             CmsContentMigrationParams(
                 key = it.contentKey,
                 withVersions = it.withVersions
@@ -172,7 +100,7 @@ fun Route.migrationRoutes() {
     }
 
     get<Migrate.Version> {
-        migrationHandler(
+        migrationReqHandler(
             CmsVersionMigrationParams(it.versionKey),
             call,
             this@migrationRoutes.environment,
@@ -181,67 +109,16 @@ fun Route.migrationRoutes() {
         )
     }
 
-    get<Status.Category> {
-        statusHandler(
-            it.categoryKey,
-            CmsMigratorType.CATEGORY,
-            call,
-            it.withResults,
-            it.withRemaining
-        )
-    }
-
-    get<Status.Content> {
-        statusHandler(
-            it.contentKey,
-            CmsMigratorType.CONTENT,
-            call,
-            it.withResults,
-            it.withRemaining
-        )
-    }
-
-    get<Status.Version> {
-        statusHandler(
-            it.versionKey,
-            CmsMigratorType.VERSION,
-            call,
-            it.withResults,
-            it.withRemaining
-        )
-    }
-
-    get<Status.All> {
-        val statusAll = CmsMigratorHandler.getStatusAll()
-        call.respond(statusAll)
-    }
-
-    get<Abort.Category> {
-        abortHandler(
-            it.categoryKey,
-            CmsMigratorType.CATEGORY,
-            call
-        )
-    }
-
-    get<Abort.Content> {
-        abortHandler(
-            it.contentKey,
-            CmsMigratorType.CONTENT,
-            call
-        )
-    }
-
-    get<Abort.Version> {
-        abortHandler(
-            it.versionKey,
-            CmsMigratorType.VERSION,
-            call
-        )
-    }
-
     get<Cleanup> {
         val numItemsRemoved = CmsMigratorHandler.cleanup()
         call.respond("Removed $numItemsRemoved inactive migrator instances")
+    }
+
+    route("status") {
+        migrationStatusRoutes()
+    }
+
+    route("abort") {
+        migrationAbortRoutes()
     }
 }

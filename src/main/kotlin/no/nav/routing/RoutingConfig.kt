@@ -3,12 +3,10 @@ package no.nav.routing
 import no.nav.routing.migration.migrationRoutes
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.logging.*
-import kotlinx.coroutines.delay
-import no.nav.migration.CmsMigratorHandler
 import no.nav.routing.cms.cmsClientRoutes
+import no.nav.routing.internal.internalRoutes
 import no.nav.utils.getConfigVar
 
 
@@ -45,22 +43,8 @@ fun Application.configureRouting() {
             }
         }
 
-        get("/internal/isAlive") {
-            call.respondText("I am alive!")
-        }
-
-        get("/internal/isReady") {
-            call.respondText("I am ready!")
-        }
-
-        get("/internal/stop") {
-            logger.info("Received stop call, preparing to die!")
-
-            CmsMigratorHandler.abortAll()
-
-            delay(5000L)
-
-            call.respond("Kill me!")
+        route("/internal") {
+            internalRoutes()
         }
     }
 }
