@@ -1,6 +1,10 @@
 package no.nav.migration
 
+import CmsMigrationStatusData
+import CmsMigrationStatusSummary
 import no.nav.cms.client.CmsClient
+import no.nav.migration.status.CmsMigrationStatus
+import no.nav.migration.status.CmsMigrationStatusBuilder
 import no.nav.openSearch.OpenSearchClient
 import no.nav.openSearch.documents.binary.OpenSearchBinaryDocumentBuilder
 import no.nav.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
@@ -9,34 +13,38 @@ import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 
 
 enum class CmsMigratorState {
-    NOT_STARTED, RUNNING, ABORTED, FAILED, FINISHED
+    INITIALIZING, READY, RUNNING, ABORTED, FAILED, FINISHED
 }
 
 private class AbortedException : Exception()
 
-private val finishedStates = listOf(CmsMigratorState.FINISHED, CmsMigratorState.FAILED, CmsMigratorState.ABORTED)
+private val finishedStates = setOf(CmsMigratorState.FINISHED, CmsMigratorState.FAILED, CmsMigratorState.ABORTED)
 
 class CmsMigrator(
     private val params: ICmsMigrationParams,
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
 ) {
-    var state: CmsMigratorState = CmsMigratorState.NOT_STARTED
+    var state: CmsMigratorState
+    private val status: CmsMigrationStatus
 
-    private val status: CmsMigrationStatus = CmsMigrationStatus(
-        params,
-        cmsClient,
-        openSearchClient
-    )
+    init {
+        state = CmsMigratorState.INITIALIZING
+
+        status = CmsMigrationStatusBuilder(cmsClient, openSearchClient).build(params)
+
+        state = CmsMigratorState.READY
+    }
 
     suspend fun run() {
-        if (state != CmsMigratorState.NOT_STARTED) {
+        if (state != CmsMigratorState.READY) {
             status.log("Attempted to start migration for ${params.key}, but it was already started - current state: $state")
             return
         }
 
         status.log("Starting migration job for ${params.key}")
 
+        status.start()
         runJob()
     }
 
@@ -98,8 +106,8 @@ class CmsMigrator(
         }
     }
 
-    fun getStatus(withResults: Boolean? = false, withRemaining: Boolean? = false): CmsMigrationStatusData {
-        return status.getStatus(withResults, withRemaining)
+    fun getStatusSummary(): CmsMigrationStatusSummary {
+        return status.getStatusSummary();
     }
 
     private suspend fun migrateCategory(
@@ -203,7 +211,7 @@ class CmsMigrator(
 
             val binaryKey = it.key.toInt()
 
-            if (status.binariesIndexed.contains(binaryKey)) {
+            if (status.data.migrated.binaries.contains(binaryKey)) {
                 val result = openSearchClient.addVersionKeyToBinaryDocument(binaryKey, versionKey)
                 if (result == null) {
                     status.log("Failed to add new versionKey to binary $binaryKey", true)

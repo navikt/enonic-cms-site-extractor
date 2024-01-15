@@ -1,20 +1,12 @@
 package no.nav.migration
 
-import kotlinx.serialization.Serializable
+import CmsDocumentsKeys
 import no.nav.cms.client.CmsClient
 import no.nav.cms.utils.getCategoryElement
 import no.nav.cms.utils.getChildElements
 import no.nav.cms.utils.getContentElement
 import org.jdom.Element
 
-
-@Serializable
-data class CmsDocumentsKeys(
-    val categories: MutableSet<Int>,
-    val contents: MutableSet<Int>,
-    val versions: MutableSet<Int>,
-    val binariesCurrentVersionsOnly: MutableSet<Int>
-)
 
 class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, private val cmsClient: CmsClient) {
     private val categories: MutableSet<Int> = mutableSetOf()
@@ -123,7 +115,7 @@ class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, p
     private fun countBinaries(contentElement: Element) {
         val binaryKeys = contentElement
             .getChild("binaries")
-            ?.run { getChildElements(this, "binary")}
+            ?.run { getChildElements(this, "binary") }
             ?.mapNotNull {
                 it.getAttributeValue("key")?.toInt()
             }

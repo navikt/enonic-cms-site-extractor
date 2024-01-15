@@ -1,9 +1,9 @@
 package no.nav.openSearch
 
+import CmsMigrationStatusData
 import com.jillesvangurp.ktsearch.*
 import com.jillesvangurp.searchdsls.querydsl.Script
 import io.ktor.util.logging.*
-import no.nav.migration.CmsMigrationStatusData
 import no.nav.openSearch.documents.IndexMappings
 import no.nav.openSearch.documents.binary.OpenSearchBinaryDocument
 import no.nav.openSearch.documents.binary.binaryIndexMappings

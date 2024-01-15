@@ -1,5 +1,7 @@
 package no.nav.migration
 
+import CmsMigrationStatusData
+import CmsMigrationStatusSummary
 import io.ktor.server.application.*
 import io.ktor.util.logging.*
 import kotlinx.serialization.Serializable
@@ -18,9 +20,9 @@ enum class CmsMigratorType {
 
 @Serializable
 data class CmsMigratorStatusAll(
-    val categories: List<CmsMigrationStatusData>,
-    val contents: List<CmsMigrationStatusData>,
-    val versions: List<CmsMigrationStatusData>,
+    val categories: List<CmsMigrationStatusSummary>,
+    val contents: List<CmsMigrationStatusSummary>,
+    val versions: List<CmsMigrationStatusSummary>,
 )
 
 object CmsMigratorHandler {
@@ -140,26 +142,21 @@ object CmsMigratorHandler {
         }
     }
 
-    fun getStatus(
-        key: Int,
-        type: CmsMigratorType,
-        withResults: Boolean?,
-        withRemaining: Boolean?
-    ): CmsMigrationStatusData? {
+    fun getStatus(key: Int, type: CmsMigratorType): CmsMigrationStatusSummary? {
         val migrator = getMigrators(key, type)
         if (migrator == null) {
             logger.info("No migration job found for $key of type ${type.name}")
             return null
         }
 
-        return migrator.getStatus(withResults, withRemaining)
+        return migrator.getStatusSummary()
     }
 
     fun getStatusAll(): CmsMigratorStatusAll {
         return CmsMigratorStatusAll(
-            categories = categoryMigrators.values.map { it.getStatus() },
-            contents = contentMigrators.values.map { it.getStatus() },
-            versions = versionMigrators.values.map { it.getStatus() }
+            categories = categoryMigrators.values.map { it.getStatusSummary() },
+            contents = contentMigrators.values.map { it.getStatusSummary() },
+            versions = versionMigrators.values.map { it.getStatusSummary() }
         )
     }
 
