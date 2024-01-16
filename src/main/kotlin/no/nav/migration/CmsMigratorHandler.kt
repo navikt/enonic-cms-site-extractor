@@ -40,7 +40,8 @@ object CmsMigratorHandler {
                 }
 
                 this.abort()
-                migratorsByKey.remove(key)
+                migratorsByKey.values.remove(this)
+                migratorsByJobId.values.remove(this)
             }
 
             CmsMigratorBuilder().build(params, environment)

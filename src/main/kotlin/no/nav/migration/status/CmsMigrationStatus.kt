@@ -1,6 +1,9 @@
 package no.nav.migration.status
 
+import CmsDocumentsCount
+import CmsDocumentsKeys
 import CmsElementType
+import CmsElementsMap
 import CmsMigrationStatusData
 import CmsMigrationStatusSummary
 import com.jillesvangurp.ktsearch.DocumentIndexResponse
@@ -12,6 +15,24 @@ import no.nav.utils.withTimestamp
 
 
 private val logger = KtorSimpleLogger("CmsMigrationStatus")
+
+private fun <Type> getElementsMapValue(type: CmsElementType, map: CmsElementsMap<Type>): Type {
+    return when (type) {
+        CmsElementType.CATEGORY -> map.categories
+        CmsElementType.CONTENT -> map.contents
+        CmsElementType.VERSION -> map.versions
+        CmsElementType.BINARY -> map.binaries
+    }
+}
+
+private fun getMigratedCount(migrated: CmsDocumentsKeys): CmsDocumentsCount {
+    return CmsDocumentsCount(
+        categories = migrated.categories.size,
+        contents = migrated.contents.size,
+        versions = migrated.versions.size,
+        binaries = migrated.binaries.size
+    )
+}
 
 class CmsMigrationStatus(
     val data: CmsMigrationStatusData,
@@ -39,12 +60,7 @@ class CmsMigrationStatus(
 
         val msg = withTimestamp("Indexed $elementDescription (index: ${result.index} - result: ${result.result})")
 
-        when (type) {
-            CmsElementType.CATEGORY -> data.migrated.categories
-            CmsElementType.CONTENT -> data.migrated.contents
-            CmsElementType.VERSION -> data.migrated.versions
-            CmsElementType.BINARY -> data.migrated.binaries
-        }.let {
+        getElementsMapValue(type, data.migrated).let {
             if (it.contains(key)) {
                 log(
                     "Duplicate result for $type $key: $msg",
@@ -52,32 +68,29 @@ class CmsMigrationStatus(
                 )
             } else {
                 it.add(key)
-                log(msg)
+                getElementsMapValue(type, data.results).add(msg)
             }
         }
 
-        when (type) {
-            CmsElementType.CATEGORY -> data.remaining.categories
-            CmsElementType.CONTENT -> data.remaining.contents
-            CmsElementType.VERSION -> data.remaining.versions
-            CmsElementType.BINARY -> data.remaining.binaries
-        }.remove(key)
+        getElementsMapValue(type, data.remaining).remove(key)
     }
 
     fun getStatusSummary(): CmsMigrationStatusSummary {
         return CmsMigrationStatusSummary(
             jobId = data.jobId,
             params = data.params,
-            log = data.log,
+            migratedCount = getMigratedCount(data.migrated),
             totalCount = data.totalCount,
-            migratedCount = data.migratedCount,
+            log = data.log,
             startTime = data.startTime,
             stopTime = data.stopTime
         )
     }
 
     private suspend fun persistToOpenSearch() {
-        val response = openSearchClient.indexMigrationStatus(data)
+        val response = openSearchClient
+            .indexMigrationStatus(data.copy(migratedCount = getMigratedCount(data.migrated)))
+
         if (response == null) {
             log("Failed to persist status for job ${data.jobId} to OpenSearch - retrying in 5 sec")
             delay(5000L)
