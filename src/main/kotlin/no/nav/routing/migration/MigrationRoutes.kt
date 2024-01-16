@@ -125,16 +125,10 @@ fun Route.migrationRoutes() {
     }
 
     get<Migrate.Resume> {
-        val didResume = CmsMigratorHandler
+        call.respond("Attempting to resume job with id ${it.jobId}")
+
+        CmsMigratorHandler
             .initByJobId(it.jobId, it.start, this@migrationRoutes.environment)
-
-        val response = if (didResume) {
-            "Resumed job with id ${it.jobId}"
-        } else {
-            "Could not resume job with id ${it.jobId}"
-        }
-
-        call.respond(response)
     }
 
     get<Cleanup> {
