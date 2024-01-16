@@ -6,6 +6,6 @@ metadata:
   name: opensearch-personbruker-enonic-cms-archive
   namespace: personbruker
 spec:
-  plan: startup-4
+  plan: startup-16
   project: nav-prod
-  disk_space: 200GiB
+  disk_space: 350GiB
