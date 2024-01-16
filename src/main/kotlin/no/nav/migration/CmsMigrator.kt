@@ -39,11 +39,8 @@ class CmsMigrator(
         versions = status.data.remaining.versions.toList()
     )
 
-    suspend fun run(resume: Boolean? = false) {
-        if (resume == true) {
-            status.log("Resuming job!")
-            setState(CmsMigratorState.READY)
-        } else if (state != CmsMigratorState.READY) {
+    suspend fun run() {
+        if (state != CmsMigratorState.READY) {
             status.log("Attempted to start migration job ${status.data.jobId}, but it was already started - current state: $state")
             return
         }
