@@ -1,6 +1,7 @@
 val kotlinVersion: String by project
 val ktorVersion: String by project
 val logbackVersion: String by project
+val logstashVersion: String by project
 val slf4jVersion: String by project
 
 plugins {
@@ -55,6 +56,7 @@ dependencies {
     implementation("io.ktor:ktor-client-logging:$ktorVersion")
 
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
+    implementation("net.logstash.logback:logstash-logback-encoder:${logstashVersion}")
     implementation("org.slf4j:slf4j-api:$slf4jVersion")
     implementation("com.enonic.cms:cms-api:4.7.18")
 
