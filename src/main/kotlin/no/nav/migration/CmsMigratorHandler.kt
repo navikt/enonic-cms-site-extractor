@@ -3,128 +3,98 @@ package no.nav.migration
 import CmsMigrationStatusSummary
 import io.ktor.server.application.*
 import io.ktor.util.logging.*
-import kotlinx.serialization.Serializable
-import no.nav.cms.client.CmsClientBuilder
-import no.nav.migration.status.CmsMigrationStatusBuilder
-import no.nav.openSearch.OpenSearchClientBuilder
-import kotlin.collections.HashMap
+import no.nav.routing.CmsMigratorBuilder
 
-
-private typealias MigratorsMap = HashMap<Int, CmsMigrator>
 
 private val logger = KtorSimpleLogger("CmsMigratorFactory")
 
-enum class CmsMigratorType {
-    CATEGORY, CONTENT, VERSION
-}
-
-@Serializable
-data class CmsMigratorStatusAll(
-    val categories: List<CmsMigrationStatusSummary>,
-    val contents: List<CmsMigrationStatusSummary>,
-    val versions: List<CmsMigrationStatusSummary>,
-)
-
 object CmsMigratorHandler {
-    private val categoryMigrators = MigratorsMap()
-    private val contentMigrators = MigratorsMap()
-    private val versionMigrators = MigratorsMap()
+    private val migratorsByKey = mutableMapOf<Int, CmsMigrator>()
+    private val migratorsByJobId = mutableMapOf<String, CmsMigrator>()
 
-    private val waitingForInit = mutableSetOf<Int>()
-
-    private fun getMigrators(params: ICmsMigrationParams): MigratorsMap {
-        return when (params) {
-            is CmsCategoryMigrationParams -> categoryMigrators
-            is CmsContentMigrationParams -> contentMigrators
-            is CmsVersionMigrationParams -> versionMigrators
-        }
-    }
-
-    private fun getMigrator(key: Int, type: CmsMigratorType): CmsMigrator? {
-        return when (type) {
-            CmsMigratorType.CATEGORY -> categoryMigrators
-            CmsMigratorType.CONTENT -> contentMigrators
-            CmsMigratorType.VERSION -> versionMigrators
-        }[key]
-    }
+    private val waitingForInit = mutableSetOf<String>()
 
     fun getMigratorState(params: ICmsMigrationParams): String? {
-        if (waitingForInit.contains(params.key)) {
+        if (waitingForInit.contains(params.key.toString())) {
             return "initializing"
         }
 
-        return getMigrators(params)[params.key]?.state?.name
+        return migratorsByKey[params.key]?.state?.name
     }
 
-    suspend fun initMigrator(
+    suspend fun initByParams(
         params: ICmsMigrationParams,
-        environment: ApplicationEnvironment?,
         start: Boolean? = false,
         forceCreate: Boolean? = false,
-    ) {
-        createOrRetrieveMigrator(params, environment, forceCreate)?.apply {
-            if (start == true) {
-                this.run()
+        environment: ApplicationEnvironment?,
+    ): Boolean {
+        return init(params.key.toString(), start) {
+            val key = params.key
+
+            migratorsByKey[key]?.run {
+                if (forceCreate != true) {
+                    return@init this
+                }
+
+                this.abort()
+                migratorsByKey.remove(key)
             }
+
+            CmsMigratorBuilder().build(params, environment)
         }
     }
 
-    private suspend fun createOrRetrieveMigrator(
-        params: ICmsMigrationParams,
+    suspend fun initByJobId(
+        jobId: String,
+        start: Boolean? = false,
         environment: ApplicationEnvironment?,
-        forceCreate: Boolean? = false,
-    ): CmsMigrator? {
-        val key = params.key
+    ): Boolean {
+        return init(jobId, start) {
+            migratorsByJobId[jobId]
+                ?: CmsMigratorBuilder().build(jobId, environment)
+        }
+    }
 
-        val migrators = getMigrators(params)
-
-        migrators[key]?.run {
-            if (forceCreate != true) {
-                return@createOrRetrieveMigrator this
-            }
-
-            this.abort()
-            migrators.remove(key)
+    private suspend fun init(
+        initKey: String,
+        start: Boolean? = false,
+        migratorBuilder: suspend () -> CmsMigrator?
+    ): Boolean {
+        if (waitingForInit.contains(initKey)) {
+            logger.info("Migrator for key $initKey is currently initializing")
+            return false
         }
 
-        val cmsClient = CmsClientBuilder(environment).build()
-        if (cmsClient == null) {
-            logger.error("Failed to initialize CMS client")
-            return null
-        }
-
-        val openSearchClient = OpenSearchClientBuilder(environment).build()
-        if (openSearchClient == null) {
-            logger.error("Failed to initialize OpenSearch client")
-            return null
-        }
-
-        if (waitingForInit.contains(key)) {
-            logger.info("Migrator for key $key is currently initializing")
-            return null
-        }
-
-        waitingForInit.add(key)
+        waitingForInit.add(initKey)
 
         val migrator = try {
-            val status = CmsMigrationStatusBuilder(cmsClient, openSearchClient).build(params)
-            CmsMigrator(status, cmsClient, openSearchClient)
+            migratorBuilder()
         } catch (e: Exception) {
             logger.error("Error while initalizing CMS migrator: ${e.message}")
             throw e
         } finally {
-            waitingForInit.remove(key)
+            waitingForInit.remove(initKey)
         }
 
-        migrators[key] = migrator
+        if (migrator == null) {
+            return false
+        }
 
-        return migrator
+        migratorsByKey[migrator.baseKey] = migrator
+        migratorsByJobId[migrator.jobId] = migrator
+
+        if (start == true) {
+            migrator.run()
+        }
+
+        return true
     }
 
-    suspend fun abortJob(key: Int, type: CmsMigratorType): Boolean {
-        val migrator = getMigrator(key, type)
+    suspend fun abortJob(jobId: String): Boolean {
+        val migrator = migratorsByJobId[jobId]
+
         if (migrator == null) {
-            logger.info("No migration job found for $key of type ${type.name}")
+            logger.info("No migration job found for $jobId")
             return false
         }
 
@@ -133,50 +103,42 @@ object CmsMigratorHandler {
         return true
     }
 
-    suspend fun abortAll() {
-        listOf(categoryMigrators, contentMigrators, versionMigrators).forEach { migratorsMap ->
-            migratorsMap.values.forEach { migrator ->
-                if (migrator.state == CmsMigratorState.RUNNING) {
-                    migrator.abort()
-                }
+    suspend fun abortAll(): List<String> {
+        return migratorsByJobId.values.mapNotNull { migrator ->
+            if (migrator.state != CmsMigratorState.RUNNING) {
+                return@mapNotNull null
             }
+
+            migrator.abort()
+
+            migrator.jobId
         }
     }
 
-    fun getStatus(key: Int, type: CmsMigratorType): CmsMigrationStatusSummary? {
-        val migrator = getMigrator(key, type)
+    fun getStatus(jobId: String): CmsMigrationStatusSummary? {
+        val migrator = migratorsByJobId[jobId]
         if (migrator == null) {
-            logger.info("No migration job found for $key of type ${type.name}")
+            logger.info("No migration job found for $jobId")
             return null
         }
 
         return migrator.getStatusSummary()
     }
 
-    fun getStatusAll(): CmsMigratorStatusAll {
-        return CmsMigratorStatusAll(
-            categories = categoryMigrators.values.map { it.getStatusSummary() },
-            contents = contentMigrators.values.map { it.getStatusSummary() },
-            versions = versionMigrators.values.map { it.getStatusSummary() }
-        )
-    }
-
-    private fun removeInactive(migratorsMap: MigratorsMap): Int {
-        return migratorsMap.keys.fold(0) { acc, key ->
-            val migrator = migratorsMap[key]
-
-            if (migrator?.state != CmsMigratorState.RUNNING) {
-                migratorsMap.remove(key)
-                return@fold acc + 1
-            }
-
-            return@fold acc
+    fun getStatusAll(): List<CmsMigrationStatusSummary> {
+        return migratorsByJobId.values.map {
+            it.getStatusSummary()
         }
     }
 
-    fun cleanup(): Int {
-        return removeInactive(categoryMigrators) +
-                removeInactive(contentMigrators) +
-                removeInactive(versionMigrators)
+    fun cleanup(): List<String> {
+        val migratorsToRemove = migratorsByJobId.values.filter {
+            it.state != CmsMigratorState.RUNNING
+        }.toSet()
+
+        migratorsByJobId.values.removeAll(migratorsToRemove)
+        migratorsByKey.values.removeAll(migratorsToRemove)
+
+        return migratorsToRemove.map { it.jobId }
     }
 }

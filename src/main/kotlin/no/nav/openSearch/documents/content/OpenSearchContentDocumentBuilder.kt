@@ -13,12 +13,12 @@ import org.jdom.Element
 
 class OpenSearchContentDocumentBuilder(private val cmsClient: CmsClient) {
 
-    suspend fun buildDocumentFromContent(contentKey: Int): OpenSearchContentDocument? {
+    suspend fun buildFromContent(contentKey: Int): OpenSearchContentDocument? {
         val document = cmsClient.getContent(contentKey)
         return transform(document)
     }
 
-    suspend fun buildDocumentFromVersion(versionKey: Int): OpenSearchContentDocument? {
+    suspend fun buildFromVersion(versionKey: Int): OpenSearchContentDocument? {
         val document = cmsClient.getContentVersion(versionKey)
         return transform(document)
     }

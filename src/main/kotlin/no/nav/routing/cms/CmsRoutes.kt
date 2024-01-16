@@ -242,7 +242,7 @@ fun Route.cmsClientRoutes() {
         }
 
         val document = OpenSearchContentDocumentBuilder(cmsClient)
-            .buildDocumentFromContent(it.contentKey)
+            .buildFromContent(it.contentKey)
 
         jsonResponse(call, document, "Failed to build content document for ${it.contentKey}")
     }
@@ -255,7 +255,7 @@ fun Route.cmsClientRoutes() {
         }
 
         val document = OpenSearchContentDocumentBuilder(cmsClient)
-            .buildDocumentFromVersion(it.versionKey)
+            .buildFromVersion(it.versionKey)
 
         jsonResponse(call, document, "Failed to build content document for version ${it.versionKey}")
     }

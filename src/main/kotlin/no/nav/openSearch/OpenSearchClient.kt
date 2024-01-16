@@ -4,6 +4,8 @@ import CmsMigrationStatusData
 import com.jillesvangurp.ktsearch.*
 import com.jillesvangurp.searchdsls.querydsl.Script
 import io.ktor.util.logging.*
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.MissingFieldException
 import no.nav.openSearch.documents.IndexMappings
 import no.nav.openSearch.documents.binary.OpenSearchBinaryDocument
 import no.nav.openSearch.documents.binary.binaryIndexMappings
@@ -19,15 +21,15 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
     private val client: SearchClient = searchClient
 
     private val contentIndexName: String = "${indexPrefix}_content"
-    private val categoriesIndexName: String = "${indexPrefix}_categories"
-    private val binariesIndexName: String = "${indexPrefix}_binaries"
-    private val migrationLogsIndexName: String = "${indexPrefix}_migrationlogs"
+    private val categoriesIndex: String = "${indexPrefix}_categories"
+    private val binariesIndex: String = "${indexPrefix}_binaries"
+    private val migrationStatusIndex: String = "${indexPrefix}_migrationlogs"
 
     suspend fun init(): OpenSearchClient {
         createIndexIfNotExists(contentIndexName, contentIndexMappings)
-        createIndexIfNotExists(categoriesIndexName, categoryIndexMappings)
-        createIndexIfNotExists(binariesIndexName, binaryIndexMappings)
-        createIndexIfNotExists(migrationLogsIndexName)
+        createIndexIfNotExists(categoriesIndex, categoryIndexMappings)
+        createIndexIfNotExists(binariesIndex, binaryIndexMappings)
+        createIndexIfNotExists(migrationStatusIndex)
         return this
     }
 
@@ -68,26 +70,50 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
     }
 
     suspend fun indexCategory(document: OpenSearchCategoryDocument): DocumentIndexResponse? {
-        return indexDocument(categoriesIndexName, document, document.key)
+        return indexDocument(categoriesIndex, document, document.key)
     }
 
     suspend fun indexBinary(document: OpenSearchBinaryDocument): DocumentIndexResponse? {
-        return indexDocument(binariesIndexName, document, document.binaryKey)
+        return indexDocument(binariesIndex, document, document.binaryKey)
     }
 
     suspend fun addVersionKeyToBinaryDocument(binaryKey: Int, versionKey: Int): DocumentUpdateResponse? {
-        return try {
-            client.updateDocument(binariesIndexName, binaryKey.toString(), Script.create {
+        try {
+            return client.updateDocument(binariesIndex, binaryKey.toString(), Script.create {
                 source = "if (!ctx._source.versionKeys.contains(params.key)) {ctx._source.versionKeys.add(params.key)}"
                 params = mapOf("key" to versionKey.toString())
             })
-        } catch(e: RestException) {
+        } catch (e: RestException) {
             logger.error("Error updating binary document for $binaryKey: [${e.status}] ${e.message}")
             return null
         }
     }
 
-    suspend fun indexMigrationLog(document: CmsMigrationStatusData): DocumentIndexResponse? {
-        return indexDocument(migrationLogsIndexName, document, document.jobId)
+    suspend fun indexMigrationStatus(document: CmsMigrationStatusData): DocumentIndexResponse? {
+        return indexDocument(migrationStatusIndex, document, document.jobId)
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    suspend fun getMigrationStatus(jobId: String): CmsMigrationStatusData? {
+        try {
+            val response = client.getDocument(target = migrationStatusIndex, id = jobId)
+            return response.document<CmsMigrationStatusData>()
+        } catch (e: Exception) {
+            when (e) {
+                is RestException -> {
+                    logger.error("Error getting status for job $jobId: ${e.status} ${e.message}")
+                }
+
+                is MissingFieldException -> {
+                    logger.error("Missing fields in status for job $jobId: ${e.missingFields.joinToString(", ")} (${e.message})")
+                }
+
+                else -> {
+                    logger.error("Unknown error getting status for job $jobId - ${e.message}")
+                }
+            }
+
+            return null
+        }
     }
 }

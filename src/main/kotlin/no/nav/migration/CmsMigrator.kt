@@ -30,6 +30,8 @@ class CmsMigrator(
     private val openSearchClient: OpenSearchClient,
 ) {
     var state: CmsMigratorState = CmsMigratorState.READY
+    val jobId = status.data.jobId
+    val baseKey = status.data.params.key
 
     private val keysToMigrate: KeysToMigrate = KeysToMigrate(
         categories = status.data.remaining.categories.toList(),
@@ -115,7 +117,7 @@ class CmsMigrator(
     private suspend fun migrateContent(contentKey: Int) {
         handleAborted()
 
-        val contentDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromContent(contentKey)
+        val contentDocument = OpenSearchContentDocumentBuilder(cmsClient).buildFromContent(contentKey)
 
         if (contentDocument == null) {
             status.log("Failed to create content document with content key $contentKey", true)
@@ -136,7 +138,7 @@ class CmsMigrator(
     private suspend fun migrateVersion(versionKey: Int) {
         handleAborted()
 
-        val contentVersionDocument = OpenSearchContentDocumentBuilder(cmsClient).buildDocumentFromVersion(versionKey)
+        val contentVersionDocument = OpenSearchContentDocumentBuilder(cmsClient).buildFromVersion(versionKey)
 
         if (contentVersionDocument == null) {
             status.log("Failed to create content document with version key $versionKey", true)

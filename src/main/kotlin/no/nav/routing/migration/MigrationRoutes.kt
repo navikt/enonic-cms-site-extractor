@@ -8,6 +8,7 @@ import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.migration.*
+import no.nav.openSearch.OpenSearchClientBuilder
 
 
 private class Migrate {
@@ -35,10 +36,16 @@ private class Migrate {
         val start: Boolean = false,
         val restart: Boolean = false
     )
+
+    @Resource("resume/{jobId}")
+    class Resume(val jobId: String, val start: Boolean = false)
 }
 
 @Resource("cleanup")
 private class Cleanup
+
+@Resource("job/{jobId}")
+class Job(val jobId: String)
 
 private suspend fun migrationReqHandler(
     migrationParams: ICmsMigrationParams,
@@ -58,17 +65,23 @@ private suspend fun migrationReqHandler(
     call.respond(msg)
 
     CmsMigratorHandler
-        .initMigrator(
+        .initByParams(
             migrationParams,
-            environment,
             start,
             forceCreate,
+            environment,
         )
 }
 
 fun Route.migrationRoutes() {
     install(ContentNegotiation) {
         json()
+    }
+
+    get<Job> {
+        val jobStatus = OpenSearchClientBuilder(this@migrationRoutes.environment).build()?.getMigrationStatus(it.jobId)
+
+        call.respond(jobStatus ?: "Oh noes")
     }
 
     get<Migrate.Category> {
@@ -109,9 +122,22 @@ fun Route.migrationRoutes() {
         )
     }
 
+    get<Migrate.Resume> {
+        val didResume = CmsMigratorHandler
+            .initByJobId(it.jobId, it.start, this@migrationRoutes.environment)
+
+        val response = if (didResume) {
+            "Resumed job with id ${it.jobId}"
+        } else {
+            "Could not resume job with id ${it.jobId}"
+        }
+
+        call.respond(response)
+    }
+
     get<Cleanup> {
-        val numItemsRemoved = CmsMigratorHandler.cleanup()
-        call.respond("Removed $numItemsRemoved inactive migrator instances")
+        val jobsRemoved = CmsMigratorHandler.cleanup()
+        call.respond("Removed inactive jobs: ${jobsRemoved.joinToString(", ")}")
     }
 
     route("status") {

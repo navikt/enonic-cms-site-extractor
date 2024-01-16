@@ -39,4 +39,15 @@ class CmsMigrationStatusBuilder(
 
         return CmsMigrationStatus(data, openSearchClient)
     }
+
+    suspend fun build(jobIdToResume: String): CmsMigrationStatus? {
+        val persistedData = openSearchClient.getMigrationStatus(jobIdToResume)
+
+        if (persistedData == null) {
+            logger.error("No data found for job id $jobIdToResume")
+            return null
+        }
+
+        return CmsMigrationStatus(persistedData, openSearchClient)
+    }
 }

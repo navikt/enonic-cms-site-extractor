@@ -6,55 +6,28 @@ import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.migration.CmsMigratorHandler
-import no.nav.migration.CmsMigratorType
 
 
 private class Abort {
-    @Resource("category/{categoryKey}")
-    class Category(val categoryKey: Int)
+    @Resource("job/{jobId}")
+    class Job(val jobId: String)
 
-    @Resource("content/{contentKey}")
-    class Content(val contentKey: Int)
-
-    @Resource("version/{versionKey}")
-    class Version(val versionKey: Int)
-}
-
-private suspend fun abortReqHandler(
-    key: Int,
-    type: CmsMigratorType,
-    call: ApplicationCall,
-) {
-    val result = CmsMigratorHandler.abortJob(key, type)
-    if (!result) {
-        call.respond("Could not abort migration job for ${type.name} $key - The job may not be running")
-    } else {
-        call.respond("Aborted migration job for ${type.name} $key")
-    }
+    @Resource("all")
+    class All()
 }
 
 fun Route.migrationAbortRoutes() {
-    get<Abort.Category> {
-        abortReqHandler(
-            it.categoryKey,
-            CmsMigratorType.CATEGORY,
-            call
-        )
+    get<Abort.Job> {
+        val didAbort = CmsMigratorHandler.abortJob(it.jobId)
+        if (!didAbort) {
+            call.respond("Could not abort migration job for ${it.jobId} - The job may not be running")
+        } else {
+            call.respond("Aborted migration job for ${it.jobId}")
+        }
     }
 
-    get<Abort.Content> {
-        abortReqHandler(
-            it.contentKey,
-            CmsMigratorType.CONTENT,
-            call
-        )
-    }
-
-    get<Abort.Version> {
-        abortReqHandler(
-            it.versionKey,
-            CmsMigratorType.VERSION,
-            call
-        )
+    get<Abort.All> {
+        val abortedJobs = CmsMigratorHandler.abortAll()
+        call.respond("Aborted ${abortedJobs.size} jobs: ${abortedJobs.joinToString(", ")}")
     }
 }

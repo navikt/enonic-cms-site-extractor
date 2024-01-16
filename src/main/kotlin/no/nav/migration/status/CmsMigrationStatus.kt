@@ -5,6 +5,7 @@ import CmsMigrationStatusData
 import CmsMigrationStatusSummary
 import com.jillesvangurp.ktsearch.DocumentIndexResponse
 import io.ktor.util.logging.*
+import kotlinx.coroutines.delay
 import no.nav.openSearch.OpenSearchClient
 import no.nav.utils.getTimestamp
 import no.nav.utils.withTimestamp
@@ -76,15 +77,17 @@ class CmsMigrationStatus(
     }
 
     private suspend fun persistToOpenSearch() {
-        val response = openSearchClient.indexMigrationLog(data)
+        val response = openSearchClient.indexMigrationStatus(data)
         if (response == null) {
-            log("Failed to persist status for job ${data.jobId} to OpenSearch!")
+            log("Failed to persist status for job ${data.jobId} to OpenSearch - retrying in 5 sec")
+            delay(5000L)
+            persistToOpenSearch()
         } else {
             log("Response from OpenSearch indexing: $response")
         }
     }
 
-    suspend fun start() {
+    fun start() {
         data.startTime = getTimestamp()
     }
 
