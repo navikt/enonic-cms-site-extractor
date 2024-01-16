@@ -59,8 +59,11 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
     ): DocumentIndexResponse? {
         return try {
             client.indexDocument(index, document, id)
-        } catch (e: RestException) {
-            logger.error("Error while indexing document $id to index $index - [${e.status}] ${e.message}")
+        } catch (e: Exception) {
+            when (e) {
+                is RestException -> logger.error("Error while indexing document $id to index $index - [${e.status}] ${e.message}")
+                else -> logger.error("Unknown error while indexing document $id to index $index - ${e.message})")
+            }
             return null
         }
     }
@@ -83,8 +86,11 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
                 source = "if (!ctx._source.versionKeys.contains(params.key)) {ctx._source.versionKeys.add(params.key)}"
                 params = mapOf("key" to versionKey.toString())
             })
-        } catch (e: RestException) {
-            logger.error("Error updating binary document for $binaryKey: [${e.status}] ${e.message}")
+        } catch (e: Exception) {
+            when (e) {
+                is RestException -> logger.error("Error updating binary document for $binaryKey - [${e.status}] ${e.message}")
+                else -> logger.error("Unknown error while updating binary document for $binaryKey - ${e.message})")
+            }
             return null
         }
     }

@@ -36,7 +36,7 @@ class CmsMigrator(
     private val keysToMigrate: KeysToMigrate = KeysToMigrate(
         categories = status.data.remaining.categories.toList(),
         contents = status.data.remaining.contents.toList(),
-        versions = status.data.remaining.contents.toList()
+        versions = status.data.remaining.versions.toList()
     )
 
     suspend fun run() {
