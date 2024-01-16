@@ -27,10 +27,6 @@ class CmsMigrator(
     val jobId = status.data.jobId
     val baseKey = status.data.params.key
 
-    fun getState(): CmsMigratorState {
-        return state
-    }
-
     suspend fun run() {
         if (state != CmsMigratorState.READY) {
             status.log("Attempted to start migration job ${status.data.jobId}, but it was already started - current state: $state")
@@ -74,6 +70,10 @@ class CmsMigrator(
         }
 
         setState(CmsMigratorState.FINISHED)
+    }
+
+    fun getState(): CmsMigratorState {
+        return state
     }
 
     private suspend fun setState(newState: CmsMigratorState) {
