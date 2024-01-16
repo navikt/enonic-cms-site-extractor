@@ -18,26 +18,18 @@ private val finishedStates = setOf(CmsMigratorState.FINISHED, CmsMigratorState.F
 
 private class AbortedException : Exception()
 
-private data class KeysToMigrate(
-    val categories: List<Int>,
-    val contents: List<Int>,
-    val versions: List<Int>,
-)
-
 class CmsMigrator(
     private val status: CmsMigrationStatus,
     private val cmsClient: CmsClient,
     private val openSearchClient: OpenSearchClient,
 ) {
-    var state: CmsMigratorState = CmsMigratorState.READY
+    private var state: CmsMigratorState = CmsMigratorState.READY
     val jobId = status.data.jobId
     val baseKey = status.data.params.key
 
-    private val keysToMigrate: KeysToMigrate = KeysToMigrate(
-        categories = status.data.remaining.categories.toList(),
-        contents = status.data.remaining.contents.toList(),
-        versions = status.data.remaining.versions.toList()
-    )
+    fun getState(): CmsMigratorState {
+        return state
+    }
 
     suspend fun run() {
         if (state != CmsMigratorState.READY) {
@@ -50,13 +42,26 @@ class CmsMigrator(
         runJob()
     }
 
+    fun prepareRetry() {
+        if (state == CmsMigratorState.RUNNING) {
+            status.log("Attempted to retry job, but it was already running")
+            return
+        }
+
+        state = CmsMigratorState.READY
+    }
+
     private suspend fun runJob() {
         setState(CmsMigratorState.RUNNING)
 
+        val categories = status.data.remaining.categories.toList()
+        val contents = status.data.remaining.contents.toList()
+        val versions = status.data.remaining.versions.toList()
+
         try {
-            keysToMigrate.categories.forEach { migrateCategory(it) }
-            keysToMigrate.contents.forEach { migrateContent(it) }
-            keysToMigrate.versions.forEach { migrateVersion(it) }
+            categories.forEach { migrateCategory(it) }
+            contents.forEach { migrateContent(it) }
+            versions.forEach { migrateVersion(it) }
         } catch (e: Exception) {
             if (e is AbortedException) {
                 status.log("Job ${status.data.jobId} was aborted")

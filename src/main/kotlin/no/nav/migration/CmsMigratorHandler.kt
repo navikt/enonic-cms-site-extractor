@@ -22,7 +22,7 @@ object CmsMigratorHandler {
         val migrator = migratorsByKey[params.key]
             ?: return null
 
-        return "${migrator.state.name} - job id: ${migrator.jobId}"
+        return "${migrator.getState().name} - job id: ${migrator.jobId}"
     }
 
     suspend fun initByParams(
@@ -55,9 +55,7 @@ object CmsMigratorHandler {
     ): Boolean {
         return init(jobId, start) {
             migratorsByJobId[jobId]?.apply {
-                if (this.state != CmsMigratorState.RUNNING) {
-                    this.state = CmsMigratorState.READY
-                }
+                this.prepareRetry()
             } ?: CmsMigratorBuilder().build(jobId, environment)
         }
     }
@@ -112,7 +110,7 @@ object CmsMigratorHandler {
 
     suspend fun abortAll(): List<String> {
         return migratorsByJobId.values.mapNotNull { migrator ->
-            if (migrator.state != CmsMigratorState.RUNNING) {
+            if (migrator.getState() != CmsMigratorState.RUNNING) {
                 return@mapNotNull null
             }
 
@@ -140,7 +138,7 @@ object CmsMigratorHandler {
 
     fun cleanup(): List<String> {
         val migratorsToRemove = migratorsByJobId.values.filter {
-            it.state != CmsMigratorState.RUNNING
+            it.getState() != CmsMigratorState.RUNNING
         }.toSet()
 
         migratorsByJobId.values.removeAll(migratorsToRemove)
