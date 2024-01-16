@@ -69,28 +69,33 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
         url: String,
         method: HttpMethod = HttpMethod.Get,
         reqBuilder: HttpRequestBuilder.() -> Unit
-    ): HttpResponse {
-        val response = httpClient.request(url) {
-            this.method = method
-            reqBuilder()
-        }
-
-        if (!isLoginRedirect(response)) {
-            return response
-        }
-
-        logger.info("Redirected to login")
-
-        val loginResponse = login()
-
-        return if (isLoginSuccessful(loginResponse)) {
-            logger.info("Login was successful!")
-            requestWithLogin(url, method) {
+    ): HttpResponse? {
+        try {
+            val response = httpClient.request(url) {
+                this.method = method
                 reqBuilder()
             }
-        } else {
-            logger.error("Login failed!")
-            loginResponse
+
+            if (!isLoginRedirect(response)) {
+                return response
+            }
+
+            logger.info("Redirected to login")
+
+            val loginResponse = login()
+
+            return if (isLoginSuccessful(loginResponse)) {
+                logger.info("Login was successful!")
+                requestWithLogin(url, method) {
+                    reqBuilder()
+                }
+            } else {
+                logger.error("Login failed!")
+                loginResponse
+            }
+        } catch (e: Exception) {
+            logger.error("Error for [$method] request to $url - ${e.message}")
+            return null
         }
     }
 
@@ -121,7 +126,7 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
             }
         }
 
-        if (response.status != HttpStatusCode.OK) {
+        if (response?.status != HttpStatusCode.OK) {
             logger.error("Could not retrieve location keys for $contentKey $versionKey $pageKey $unitKey")
             return null
         }
@@ -140,24 +145,19 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
     }
 
     suspend fun getAttachmentData(binaryKey: Int, contentKey: Int, versionKey: Int): ByteArray? {
-        try {
-            val response = requestWithLogin(attachmentUrl) {
-                url {
-                    appendPathSegments(listOf(contentKey.toString(), "binary", binaryKey.toString()))
-                    parameters.append("_version", versionKey.toString())
-                }
+        val response = requestWithLogin(attachmentUrl) {
+            url {
+                appendPathSegments(listOf(contentKey.toString(), "binary", binaryKey.toString()))
+                parameters.append("_version", versionKey.toString())
             }
-
-            if (response.status == HttpStatusCode.OK) {
-                return response.body()
-            } else {
-                logger.error("Invalid attachment response for b:$binaryKey c:$contentKey v:$versionKey - ${response.status}")
-            }
-        } catch (e: Exception) {
-            logger.error("Error fetching attachment for b:$binaryKey c:$contentKey v:$versionKey - ${e.message}")
         }
 
-        return null
+        if (response?.status == HttpStatusCode.OK) {
+            return response.body()
+        } else {
+            logger.error("Invalid attachment response for b:$binaryKey c:$contentKey v:$versionKey - ${response?.status ?: "unknown error"}")
+            return null
+        }
     }
 
     suspend fun renderContent(params: ContentRenderParams): String? {
@@ -178,7 +178,7 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
             }
         }
 
-        if (response.status != HttpStatusCode.OK) {
+        if (response?.status != HttpStatusCode.OK) {
             return null
         }
 
