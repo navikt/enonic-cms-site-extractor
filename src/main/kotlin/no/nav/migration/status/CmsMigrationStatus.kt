@@ -38,6 +38,8 @@ class CmsMigrationStatus(
     val data: CmsMigrationStatusData,
     private val openSearchClient: OpenSearchClient
 ) {
+    private var resultCount = 0
+
     fun log(msg: String, isError: Boolean = false) {
         val msgWithTimestamp = withTimestamp(msg)
 
@@ -50,7 +52,13 @@ class CmsMigrationStatus(
         }
     }
 
-    fun setResult(key: Int, type: CmsElementType, result: DocumentIndexResponse?, msgSuffix: String = "") {
+    suspend fun setResult(key: Int, type: CmsElementType, result: DocumentIndexResponse?, msgSuffix: String = "") {
+        resultCount++
+
+        if (resultCount % 1000 == 0) {
+            persistToOpenSearch()
+        }
+
         val elementDescription = "$type with key $key".plus(msgSuffix)
 
         if (result == null) {

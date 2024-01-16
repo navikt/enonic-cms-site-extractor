@@ -38,13 +38,13 @@ class CmsMigrator(
         runJob()
     }
 
-    fun prepareRetry() {
+    suspend fun prepareRetry() {
         if (state == CmsMigratorState.RUNNING) {
             status.log("Attempted to retry job, but it was already running")
             return
         }
 
-        state = CmsMigratorState.READY
+        setState(CmsMigratorState.READY)
     }
 
     private suspend fun runJob() {
