@@ -68,13 +68,13 @@ class ContentRenderParamsBuilder(
 
         val pageTemplateKey = defaultLocationKeys.pageTemplateKey
         if (pageTemplateKey == null) {
-            logger.error("No pageTemplateKey found for content $contentKey (version: $versionKey)")
+            logger.debug("No pageTemplateKey found for content $contentKey (version: $versionKey)")
             return null
         }
 
         val menuItemKey = getMenuItemKey() ?: defaultLocationKeys.menuItemKey
         if (menuItemKey == null) {
-            logger.info("No menuItemKey found for content $contentKey (version: $versionKey)")
+            logger.debug("No menuItemKey found for content $contentKey (version: $versionKey)")
         }
 
         return ContentRenderParams(
