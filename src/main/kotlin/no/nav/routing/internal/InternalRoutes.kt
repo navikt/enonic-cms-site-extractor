@@ -11,15 +11,15 @@ import no.nav.migration.CmsMigratorHandler
 private val logger = KtorSimpleLogger("InternalRoutes")
 
 fun Route.internalRoutes() {
-    get("/internal/isAlive") {
+    get("/isAlive") {
         call.respondText("I am alive!")
     }
 
-    get("/internal/isReady") {
+    get("/isReady") {
         call.respondText("I am ready!")
     }
 
-    get("/internal/stop") {
+    get("/stop") {
         logger.info("Received stop call, preparing to die!")
 
         CmsMigratorHandler.abortAll()
