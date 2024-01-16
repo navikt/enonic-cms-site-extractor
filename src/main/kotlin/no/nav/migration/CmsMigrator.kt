@@ -44,6 +44,8 @@ class CmsMigrator(
             return
         }
 
+        status.log("Preparing to retry job")
+
         setState(CmsMigratorState.READY)
     }
 
