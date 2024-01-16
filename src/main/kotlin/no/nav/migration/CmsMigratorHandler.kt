@@ -54,8 +54,11 @@ object CmsMigratorHandler {
         environment: ApplicationEnvironment?,
     ): Boolean {
         return init(jobId, start) {
-            migratorsByJobId[jobId]
-                ?: CmsMigratorBuilder().build(jobId, environment)
+            migratorsByJobId[jobId]?.apply {
+                if (this.state != CmsMigratorState.RUNNING) {
+                    this.state = CmsMigratorState.READY
+                }
+            } ?: CmsMigratorBuilder().build(jobId, environment)
         }
     }
 
