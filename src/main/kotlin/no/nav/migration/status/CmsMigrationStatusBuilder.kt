@@ -8,6 +8,7 @@ import io.ktor.util.logging.*
 import no.nav.cms.client.CmsClient
 import no.nav.migration.*
 import no.nav.openSearch.OpenSearchClient
+import no.nav.utils.getTimestamp
 import java.util.*
 
 
@@ -23,6 +24,7 @@ class CmsMigrationStatusBuilder(
 
         val data = CmsMigrationStatusData(
             jobId = UUID.randomUUID().toString(),
+            startTime = getTimestamp(),
             params = params,
             totalCount = CmsDocumentsCount(
                 documentsEnumerated.categories.size,

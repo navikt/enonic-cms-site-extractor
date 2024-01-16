@@ -50,7 +50,6 @@ class CmsMigrator(
 
         status.log("Starting migration job ${status.data.jobId}")
 
-        status.start()
         runJob()
     }
 

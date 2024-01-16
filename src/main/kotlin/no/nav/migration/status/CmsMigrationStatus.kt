@@ -100,10 +100,6 @@ class CmsMigrationStatus(
         }
     }
 
-    fun start() {
-        data.startTime = getTimestamp()
-    }
-
     suspend fun finish() {
         data.stopTime = getTimestamp()
         persistToOpenSearch()
