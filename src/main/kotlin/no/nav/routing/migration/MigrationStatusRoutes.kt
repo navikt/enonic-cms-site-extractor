@@ -28,6 +28,10 @@ fun Route.migrationStatusRoutes() {
 
     get<Status.All> {
         val statusAll = CmsMigratorHandler.getStatusAll()
+        if (statusAll.isEmpty()) {
+            return@get call.respond("No migration jobs found")
+        }
+
         call.respond(statusAll)
     }
 }

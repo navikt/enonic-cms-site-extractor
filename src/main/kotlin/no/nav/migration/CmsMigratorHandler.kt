@@ -19,7 +19,10 @@ object CmsMigratorHandler {
             return "initializing"
         }
 
-        return migratorsByKey[params.key]?.state?.name
+        val migrator = migratorsByKey[params.key]
+            ?: return null
+
+        return "${migrator.state.name} - job id: ${migrator.jobId}"
     }
 
     suspend fun initByParams(

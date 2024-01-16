@@ -57,9 +57,9 @@ private suspend fun migrationReqHandler(
     val migratorState = CmsMigratorHandler.getMigratorState(migrationParams)
 
     val msg = if (migratorState == null) {
-        "No migrator found for ${migrationParams.key}, it will be created"
+        "Creating migration job for ${migrationParams.key}"
     } else {
-        "Current migrator state: $migratorState"
+        "Migration job found for ${migrationParams.key} - current state: $migratorState"
     }
 
     call.respond(msg)
@@ -79,7 +79,9 @@ fun Route.migrationRoutes() {
     }
 
     get<Job> {
-        val jobStatus = OpenSearchClientBuilder(this@migrationRoutes.environment).build()?.getMigrationStatus(it.jobId)
+        val jobStatus = OpenSearchClientBuilder(this@migrationRoutes.environment)
+            .build()
+            ?.getMigrationStatus(it.jobId)
 
         call.respond(jobStatus ?: "Oh noes")
     }

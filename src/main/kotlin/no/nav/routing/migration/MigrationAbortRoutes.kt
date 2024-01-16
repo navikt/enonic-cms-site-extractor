@@ -13,7 +13,7 @@ private class Abort {
     class Job(val jobId: String)
 
     @Resource("all")
-    class All()
+    class All
 }
 
 fun Route.migrationAbortRoutes() {
