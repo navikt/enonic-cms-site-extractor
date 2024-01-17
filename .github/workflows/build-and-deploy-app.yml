@@ -44,7 +44,7 @@ jobs:
       - name: Deploy to nais
         uses: nais/deploy/actions/deploy@v2
         env:
-          CLUSTER: prod-gcp
+          CLUSTER: ${{ inputs.cmsEnv == 'sbs' && 'prod-gcp' || 'prod-fss' }}
           RESOURCE: .nais/app.yml
-          VAR: image=${{steps.docker-push.outputs.image}}
+          VAR: image=${{ steps.docker-push.outputs.image }}
           VARS: .nais/vars/vars-${{ inputs.cmsEnv }}.yml
