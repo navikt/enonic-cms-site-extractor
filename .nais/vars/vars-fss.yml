@@ -1,5 +1,5 @@
 appName: cms-migrator-fss
-cmsHost: cmsadmin.oera.no
+cmsHost: portal-admin.adeo.no
 ingress: https://cms-migrator-fss.intern.nav.no
 secret: cms-migrator-fss
 env:
