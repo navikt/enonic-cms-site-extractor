@@ -103,8 +103,6 @@ class CmsMigrationStatus(
             log("Failed to persist status for job ${data.jobId} to OpenSearch - retrying in 5 sec")
             delay(5000L)
             persistToOpenSearch()
-        } else {
-            log("Persisted status to OpenSearch, result: ${response.result}")
         }
     }
 
