@@ -1,0 +1,9 @@
+appName: cms-migrator-fss
+cmsHost: cmsadmin.oera.no
+ingress: https://cms-migrator-fss.intern.nav.no
+secret: cms-migrator-fss
+env:
+  - name: OPEN_SEARCH_INDEXPREFIX
+    value: cmsfss
+  - name: CMS_URL
+    value: https://portal-admin.adeo.no

@@ -5,10 +5,10 @@ on:
       cmsEnv:
         description: 'CMS env'
         required: true
-        default: sbs
         type: choice
         options:
           - sbs
+          - fss
 
 jobs:
   build-and-deploy:
