@@ -104,7 +104,7 @@ class CmsMigrationStatus(
             delay(5000L)
             persistToOpenSearch()
         } else {
-            log("Response from OpenSearch indexing: $response")
+            log("Persisted status to OpenSearch, result: ${response.result}")
         }
     }
 
