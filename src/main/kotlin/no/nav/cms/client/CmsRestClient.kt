@@ -153,7 +153,11 @@ class CmsRestClient(cmsOrigin: String, private val credential: UserPasswordCrede
         }
 
         if (response?.status == HttpStatusCode.OK) {
-            return response.body()
+            val body = response.body<ByteArray>()
+
+            logger.info("Body size for b:$binaryKey c:$contentKey v:$versionKey: ${body.size}")
+
+            return body
         } else {
             logger.error("Invalid attachment response for b:$binaryKey c:$contentKey v:$versionKey - ${response?.status ?: "unknown error"}")
             return null

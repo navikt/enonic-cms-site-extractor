@@ -168,7 +168,11 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
     suspend fun getBinaryDataAsBase64(binaryKey: Int, contentKey: Int, versionKey: Int): String? {
         val rawData = restClient.getAttachmentData(binaryKey, contentKey, versionKey) ?: return null
 
-        return Base64.encode(rawData)
+        val encodedData = Base64.encode(rawData)
+
+        logger.info("Encoded size for b:$binaryKey c:$contentKey v:$versionKey: ${encodedData.length}")
+
+        return encodedData
     }
 
     suspend fun getDefaultContentLocationKeys(
