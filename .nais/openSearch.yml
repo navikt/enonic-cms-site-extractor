@@ -24,3 +24,6 @@ spec:
   integrationType: prometheus
   destinationEndpointId: 76685598-1048-4f56-b34a-9769ef747a92
   sourceServiceName: opensearch-personbruker-enonic-cms-archive
+  userConfig:
+    opensearch:
+      http_max_content_length: 2147483647
