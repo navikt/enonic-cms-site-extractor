@@ -61,7 +61,7 @@ class OpenSearchClient(searchClient: SearchClient, indexPrefix: String) {
             client.indexDocument(index, document, id)
         } catch (e: Exception) {
             when (e) {
-                is RestException -> logger.error("Error while indexing document $id to index $index - [${e.status}] ${e.message}")
+                is RestException -> logger.error("Error while indexing document $id to index $index - [${e.status}] ${e.message} ${e.response}")
                 else -> logger.error("Unknown error while indexing document $id to index $index - ${e.message})")
             }
             return null
