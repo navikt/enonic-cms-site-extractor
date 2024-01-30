@@ -22,6 +22,7 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 
+private const val CATEGORIES_BATCH_SIZE = 10000
 private const val RPC_PATH = "/rpc/bin"
 
 private val logger = KtorSimpleLogger("CmsClient")
@@ -133,7 +134,7 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
         params.includeData = false
         params.levels = depth ?: 1
         params.index = index ?: 0
-        params.count = count ?: 1000
+        params.count = count ?: CATEGORIES_BATCH_SIZE
         params.includeVersionsInfo = includeVersionsInfo
 
         return rpcErrorHandler { rpcClient.getContentByCategory(params) }

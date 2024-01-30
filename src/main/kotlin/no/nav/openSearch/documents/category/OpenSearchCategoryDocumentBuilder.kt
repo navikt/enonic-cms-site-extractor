@@ -56,7 +56,7 @@ class OpenSearchCategoryDocumentBuilder(private val cmsClient: CmsClient) {
     }
 
     private fun getContentReferences(categoryKey: Int): List<ContentRefData>? {
-        val contentsDocument = cmsClient.getContentByCategory(categoryKey, 1, 0, 1000)
+        val contentsDocument = cmsClient.getContentByCategory(categoryKey, 1)
 
         return contentsDocument
             ?.rootElement
