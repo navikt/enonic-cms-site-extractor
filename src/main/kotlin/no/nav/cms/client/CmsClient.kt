@@ -22,7 +22,7 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 
-private const val CATEGORIES_BATCH_SIZE = 10000
+private const val CATEGORIES_BATCH_SIZE = 1000
 private const val RPC_PATH = "/rpc/bin"
 
 private val logger = KtorSimpleLogger("CmsClient")
@@ -124,20 +124,34 @@ class CmsClient(cmsOrigin: String, private val credential: UserPasswordCredentia
     fun getContentByCategory(
         categoryKey: Int,
         depth: Int? = null,
-        index: Int? = null,
-        count: Int? = null,
+        index: Int = 0,
+        count: Int = CATEGORIES_BATCH_SIZE,
         includeVersionsInfo: Boolean = false
-    ): Document? {
+    ): List<Document> {
         val params = GetContentByCategoryParams()
         params.categoryKeys = intArrayOf(categoryKey)
         params.includeOfflineContent = true
         params.includeData = false
         params.levels = depth ?: 1
-        params.index = index ?: 0
-        params.count = count ?: CATEGORIES_BATCH_SIZE
+        params.index = index
+        params.count = count
         params.includeVersionsInfo = includeVersionsInfo
 
-        return rpcErrorHandler { rpcClient.getContentByCategory(params) }
+        val result = rpcErrorHandler { rpcClient.getContentByCategory(params) }
+        if (result == null) {
+            return listOf()
+        }
+
+        val totalCount = result.rootElement?.getAttributeValue("totalcount")?.toInt() ?: 0
+
+        val documentList = listOf(result)
+
+        return if (totalCount > index + count) {
+            documentList + getContentByCategory(categoryKey, depth, index + count, count, includeVersionsInfo)
+        } else {
+            documentList
+        }
+
     }
 
     fun getContentByQuery(query: String): Document? {

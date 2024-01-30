@@ -14,6 +14,7 @@ import no.nav.openSearch.documents.category.OpenSearchCategoryDocumentBuilder
 import no.nav.openSearch.documents.content.OpenSearchContentDocumentBuilder
 import no.nav.utils.jsonResponse
 import no.nav.utils.xmlResponse
+import no.nav.utils.xmlToString
 import java.util.*
 
 
@@ -171,12 +172,14 @@ fun Route.cmsClientRoutes() {
     }
 
     get<ContentByCategory> {
-        xmlResponse(
-            call,
-            CmsClientBuilder(this@cmsClientRoutes.environment)
-                .build()
-                ?.getContentByCategory(it.key, it.depth, it.index, it.count, true)
-        )
+        val documents = CmsClientBuilder(this@cmsClientRoutes.environment)
+            .build()
+            ?.getContentByCategory(it.key, it.depth)
+            ?.map { document ->
+                xmlToString(document)
+            }
+
+        jsonResponse(call, documents, "oh noes")
     }
 
     get<Binary.Document> {

@@ -55,19 +55,23 @@ class OpenSearchCategoryDocumentBuilder(private val cmsClient: CmsClient) {
             }
     }
 
-    private fun getContentReferences(categoryKey: Int): List<ContentRefData>? {
+    private fun getContentReferences(categoryKey: Int): List<ContentRefData> {
         val contentsDocument = cmsClient.getContentByCategory(categoryKey, 1)
 
         return contentsDocument
-            ?.rootElement
-            ?.run { getChildElements(this, "content") }
-            ?.map {
-                ContentRefData(
-                    key = it.getAttributeValue("key"),
-                    name = it.getChildText("name"),
-                    displayName = it.getChildText("display-name"),
-                    timestamp = parseDateTime(it.getAttributeValue("timestamp")),
-                )
+            .mapNotNull { document ->
+                document
+                    .rootElement
+                    ?.run { getChildElements(this, "content") }
+                    ?.map {
+                        ContentRefData(
+                            key = it.getAttributeValue("key"),
+                            name = it.getChildText("name"),
+                            displayName = it.getChildText("display-name"),
+                            timestamp = parseDateTime(it.getAttributeValue("timestamp")),
+                        )
+                    }
             }
+            .flatten()
     }
 }

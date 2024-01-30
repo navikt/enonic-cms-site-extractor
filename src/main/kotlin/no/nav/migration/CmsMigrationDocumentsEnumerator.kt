@@ -33,11 +33,15 @@ class CmsMigrationDocumentsEnumerator(private val params: ICmsMigrationParams, p
 
         if (params.withContent == true) {
             cmsClient.getContentByCategory(params.key, 1, includeVersionsInfo = true)
-                ?.rootElement
-                ?.run { getChildElements(this, "content") }
-                ?.forEach { contentElement ->
-                    countContents(contentElement, params.withVersions)
+                .forEach { document ->
+                    document
+                        .rootElement
+                        ?.run { getChildElements(this, "content") }
+                        ?.forEach { contentElement ->
+                            countContents(contentElement, params.withVersions)
+                        }
                 }
+
         }
 
         if (params.withChildren == true) {
