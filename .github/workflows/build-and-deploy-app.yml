@@ -1,14 +1,5 @@
 name: Build and deploy application
 on:
-  workflow_dispatch:
-    inputs:
-      cmsEnv:
-        description: 'CMS env'
-        required: true
-        type: choice
-        options:
-          - sbs
-          - fss
 
 jobs:
   build-and-deploy:
